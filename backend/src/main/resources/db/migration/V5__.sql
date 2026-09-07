@@ -37,8 +37,6 @@ ALTER TABLE ride
 DROP
 COLUMN subscription_id;
 
-DROP SEQUENCE fare_configs_seq CASCADE;
-
 ALTER TABLE fare_configs
 ALTER
 COLUMN base_fare TYPE DECIMAL USING (base_fare::DECIMAL);
