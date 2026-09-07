@@ -1,6 +1,7 @@
 package com.vamo.common.annotation;
 
 import com.vamo.auth.security.JwtAuthentication;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -23,9 +24,9 @@ public class PassengerIdArgumentResolver implements HandlerMethodArgumentResolve
 	}
 	
 	@Override
-	public Object resolveArgument(MethodParameter parameter,
+	public Object resolveArgument(@NonNull MethodParameter parameter,
 			ModelAndViewContainer mavContainer,
-			NativeWebRequest webRequest,
+			@NonNull NativeWebRequest webRequest,
 			WebDataBinderFactory binderFactory) {
 		
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
