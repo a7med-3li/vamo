@@ -25,13 +25,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
+
 @Table(name = "driver_profile")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Getter
 @Setter
+@Entity
 public class DriverProfile {
     
     @Id

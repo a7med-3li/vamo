@@ -14,12 +14,6 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
     List<Ride> findByDriverIdOrderByDepartureTimeAsc(UUID driverId);
 
-    List<Ride> findByCorridorIdAndDepartureTimeBetween(
-            Long corridorId, Instant from, Instant to);
-
-    List<Ride> findByCorridorIdAndDriverIdAndDepartureTimeBetween(
-            Long corridorId, UUID driverId, Instant from, Instant to);
-
     List<Ride> findByStatusAndDepartureTimeBefore(RideStatus status, Instant now);
 
     long countByPassengerIdAndStatus(UUID passengerId, RideStatus status);

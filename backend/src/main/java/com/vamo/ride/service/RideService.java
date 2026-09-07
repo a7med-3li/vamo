@@ -162,25 +162,6 @@ public class RideService {
                 .toList();
     }
     
-    public List<ManifestItem> getDriverManifest(UUID driverId, Long corridorId) {
-        Instant from = Instant.now();
-        Instant to = from.plusSeconds(7200);
-
-        List<Ride> rides = rideRepository.findByCorridorIdAndDepartureTimeBetween(
-                corridorId, from, to);
-
-        return rides.stream()
-                .filter(r -> r.getStatus() == RideStatus.BOOKED)
-                .map(r -> {
-                    String name = userService.getUserInfo(r.getPassengerId()).displayName();
-                    return new ManifestItem(
-                            r.getId(), r.getPassengerId(), name,
-                            r.getStatus(), r.getDepartureTime()
-                    );
-                })
-                .toList();
-    }
-
     @Transactional
     public void markNoShows() {
         Instant threshold = Instant.now().minusSeconds(3600);

@@ -62,14 +62,6 @@ public class RideController {
         return ResponseEntity.ok(new ApiResponse(true, "Ride cancelled"));
     }
 
-    @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
-    @GetMapping("/manifest")
-    public ResponseEntity<List<ManifestItem>> getManifest(
-            @AuthenticationPrincipal String userId,
-            @RequestParam Long corridorId) {
-        return ResponseEntity.ok(rideService.getDriverManifest(UUID.fromString(userId), corridorId));
-    }
-
     @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
     @GetMapping("/history")
     public ResponseEntity<List<RideHistoryItem>> getPassengerHistory(
