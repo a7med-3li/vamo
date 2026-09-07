@@ -97,10 +97,9 @@ public class AdminStatsService {
 
         return rides.stream()
                 .map(r -> new RideAdminItem(
-                        r.getId(), r.getPassengerId(), r.getDriverId(),
-                        r.getCorridorId(), r.getStatus(), r.getPin(),
+                        r.getId(), r.getPassengerId(), r.getDriverId(), r.getStatus(), r.getPin(),
                         r.getDepartureTime(), r.getRequestedAt(), r.getStartedAt(),
-                        r.getCompletedAt(), r.getBoardingConfirmedAt(), r.getNoShowMarkedAt(),
+                        r.getCompletedAt(),
                         r.getEstimatedFare(), r.getFinalFare()))
                 .toList();
     }
@@ -110,10 +109,9 @@ public class AdminStatsService {
         Ride r = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
         return new RideAdminItem(
-                r.getId(), r.getPassengerId(), r.getDriverId(),
-                r.getCorridorId(), r.getStatus(), r.getPin(),
+                r.getId(), r.getPassengerId(), r.getDriverId(), r.getStatus(), r.getPin(),
                 r.getDepartureTime(), r.getRequestedAt(), r.getStartedAt(),
-                r.getCompletedAt(), r.getBoardingConfirmedAt(), r.getNoShowMarkedAt(),
+                r.getCompletedAt(),
                 r.getEstimatedFare(), r.getFinalFare());
     }
 
@@ -230,10 +228,9 @@ public class AdminStatsService {
         return rideRepository.findByStatusOrderByRequestedAtDesc(RideStatus.NO_SHOW)
                 .stream()
                 .map(r -> new RideAdminItem(
-                        r.getId(), r.getPassengerId(), r.getDriverId(),
-                        r.getCorridorId(), r.getStatus(), r.getPin(),
+                        r.getId(), r.getPassengerId(), r.getDriverId(), r.getStatus(), r.getPin(),
                         r.getDepartureTime(), r.getRequestedAt(), r.getStartedAt(),
-                        r.getCompletedAt(), r.getBoardingConfirmedAt(), r.getNoShowMarkedAt(),
+                        r.getCompletedAt(),
                         r.getEstimatedFare(), r.getFinalFare()))
                 .toList();
     }

@@ -10,15 +10,12 @@ public record RideAdminItem(
         UUID id,
         UUID passengerId,
         UUID driverId,
-        Long corridorId,
         RideStatus status,
         String pin,
         Instant departureTime,
         Instant requestedAt,
         Instant startedAt,
         Instant completedAt,
-        Instant boardingConfirmedAt,
-        Instant noShowMarkedAt,
         BigDecimal estimatedFare,
         BigDecimal finalFare
 ) {}

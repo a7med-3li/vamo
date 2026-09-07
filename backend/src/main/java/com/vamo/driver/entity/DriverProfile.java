@@ -1,6 +1,7 @@
 package com.vamo.driver.entity;
 
 import com.vamo.common.enums.ApprovalStatus;
+import com.vamo.common.enums.VehicleType;
 import com.vamo.corridor.entity.Corridor;
 import com.vamo.user.entity.User;
 import jakarta.persistence.Entity;
@@ -43,9 +44,12 @@ public class DriverProfile {
     
     private String nationalId;
     private String licenseNumber;
+    @Enumerated(EnumType.STRING)
+    private VehicleType vehicleType;
     
     @OneToMany(mappedBy = "driver", fetch = FetchType.LAZY)
     private List<DriverDeposit> depositList;
+    
     private BigDecimal walletBalance;
     
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/models/address_result.dart';
 import '../../data/models/ride_option.dart';
 import '../../providers/ride_book_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/trip_map_preview.dart';
 import '../../widgets/vamo_button.dart';
 
 /// Which of the two search bars is currently driving the results list.
@@ -354,10 +356,15 @@ class BookRideScreenState extends State<BookRideScreen> {
       }
       return ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        itemCount: options.length + 1,
+        itemCount: options.length + 2,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
+            final tripMap = _buildTripMap(context);
+            if (tripMap == null) return const SizedBox.shrink();
+            return tripMap;
+          }
+          if (index == 1) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
               child: Text(
@@ -370,7 +377,7 @@ class BookRideScreenState extends State<BookRideScreen> {
               ),
             );
           }
-          return _RideOptionTile(option: options[index - 1]);
+          return _RideOptionTile(option: options[index - 2]);
         },
       );
     }
@@ -420,6 +427,11 @@ class BookRideScreenState extends State<BookRideScreen> {
     }
 
     // Empty / idle state
+    final tripMap = _buildTripMap(context);
+    if (tripMap != null) {
+      return tripMap;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -442,6 +454,29 @@ class BookRideScreenState extends State<BookRideScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Builds the pick-up → drop-off trip map when both coordinates are known.
+  /// Returns `null` while a coordinate is still missing so callers can fall
+  /// back to their idle state.
+  Widget? _buildTripMap(BuildContext context) {
+    final provider = context.watch<RideBookProvider>();
+    if (!provider.canRequestRide) return null;
+
+    final pickup = provider.pickupCoordinates;
+    final dropoff = provider.dropoffSelected;
+    if (pickup == null || dropoff?.lat == null || dropoff?.lng == null) {
+      return null;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: TripMapPreview(
+        pickup: LatLng(pickup.latitude, pickup.longitude),
+        dropoff: LatLng(dropoff!.lat!, dropoff.lng!),
+        height: 260,
       ),
     );
   }

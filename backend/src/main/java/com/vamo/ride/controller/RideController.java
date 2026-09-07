@@ -1,6 +1,7 @@
 package com.vamo.ride.controller;
 
 import com.vamo.addressing.entity.Address;
+import com.vamo.common.annotation.CurrentPassengerId;
 import com.vamo.common.dto.ApiResponse;
 import com.vamo.common.entity.Location;
 import com.vamo.ride.dto.*;
@@ -93,5 +94,10 @@ public class RideController {
     @GetMapping("/request")
     public List<RoutingResponse> request(@RequestBody RideRequestDto rideRequestDto) {
         return routingService.getRideOptions(rideRequestDto);
+    }
+    @PostMapping("/request/publish")
+    public ResponseEntity<Void> publishRideRequest(@CurrentPassengerId UUID passengerId, @RequestBody RideRequestDto rideRequestDto) {
+        rideService.publishRideRequest(passengerId, rideRequestDto);
+        return ResponseEntity.ok().build();
     }
 }

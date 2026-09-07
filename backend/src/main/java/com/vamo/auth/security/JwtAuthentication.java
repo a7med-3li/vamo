@@ -10,11 +10,13 @@ public class JwtAuthentication extends AbstractAuthenticationToken {
 
     private final String userId;
     private final UUID passengerId;
+    private final UUID driverId;
 
-    public JwtAuthentication(String userId, Collection<? extends GrantedAuthority> authorities, UUID passengerId) {
+    public JwtAuthentication(String userId, Collection<? extends GrantedAuthority> authorities, UUID passengerId, UUID driverId) {
         super(authorities);
         this.userId = userId;
         this.passengerId = passengerId;
+        this.driverId = driverId;
         super.setAuthenticated(true); // Must use super, as we validated the token
     }
 
@@ -35,5 +37,10 @@ public class JwtAuthentication extends AbstractAuthenticationToken {
     public UUID getPassengerId() {
         return this.passengerId;
     }
+    
+    public UUID getDriverId(){
+        return this.driverId;
+    }
+    
 }
 

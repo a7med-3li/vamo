@@ -40,6 +40,11 @@ class ApiConstants {
   // ── Admin ─────────────────────────────────────────────────────────
   static const String pendingSubscriptions =
       '/api/v1/admin/subscriptions/pending';
+  static const String adminDrivers = '/api/v1/admin/drivers';
+  static String adminApproveDriver(String profileId) =>
+      '/api/v1/admin/drivers/$profileId/approve';
+  static String adminRejectDriver(String profileId) =>
+      '/api/v1/admin/drivers/$profileId/reject';
 
   // ── Configurations ────────────────────────────────────────────────
   static const String fareConfigs = '/api/v1/configurations/fare-configs';

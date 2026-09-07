@@ -51,6 +51,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     : null;
             System.out.println("Extracted passengerId from JWT: " + passengerId);
             
+            String driverIdStr = jwt.getClaimAsString("driverId");
+            UUID driverId = (driverIdStr != null && !driverIdStr.isEmpty())
+                    ? UUID.fromString(driverIdStr)
+                    : null;
+            System.out.println("Extracted driverId from JWT: " + driverId);
+            
             List<SimpleGrantedAuthority> authorities = null;
             if (rolesClaim != null && !rolesClaim.isEmpty()) {
                 authorities = Arrays.stream(rolesClaim.split(" "))
@@ -64,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             
             // Update this constructor to accept the passengerId
-            JwtAuthentication authentication = new JwtAuthentication(userId, authorities, passengerId);
+            JwtAuthentication authentication = new JwtAuthentication(userId, authorities, passengerId, driverId);
             
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -9,8 +9,6 @@ public record ManifestItem(
         UUID rideId,
         UUID passengerId,
         String passengerName,
-        Long pickupVbsId,
-        Long dropoffVbsId,
         RideStatus status,
         Instant departureTime
 ) {}

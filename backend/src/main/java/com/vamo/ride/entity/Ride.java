@@ -2,6 +2,7 @@ package com.vamo.ride.entity;
 
 import com.vamo.common.entity.Location;
 import com.vamo.common.enums.RideStatus;
+import com.vamo.common.enums.VehicleType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,14 +33,6 @@ public class Ride {
 
     private UUID driverId;
 
-    private Long corridorId;
-
-    private Long subscriptionId;
-
-    private Long pickupVbsId;
-
-    private Long dropoffVbsId;
-
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "latitude", column = @Column(name = "pickup_lat")),
@@ -61,12 +54,15 @@ public class Ride {
     private RideStatus status;
 
     private BigDecimal estimatedFare;
+    
+    private double distanceInKm = 0.0;
 
     private BigDecimal finalFare;
+    
+    private VehicleType vehicleType;
 
-    @Column(length = 4)
-    private String pin;
-
+    private Long duration = 0L;
+    
     private Instant departureTime;
 
     private Instant requestedAt;
@@ -76,8 +72,8 @@ public class Ride {
     private Instant startedAt;
 
     private Instant completedAt;
-
-    private Instant boardingConfirmedAt;
-
-    private Instant noShowMarkedAt;
+    
+    //corridor-based rides
+    @Column(length = 4)
+    private String pin;
 }

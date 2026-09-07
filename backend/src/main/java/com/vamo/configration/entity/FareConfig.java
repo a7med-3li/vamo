@@ -26,7 +26,7 @@ public class FareConfig {
 	private BigDecimal minimumFare;
 	private BigDecimal waitingRatePerMinute;
 	
-	private BigDecimal surgeMultiplier = BigDecimal.ONE; // default no surge
+	private BigDecimal surgeMultiplier = BigDecimal.ONE;
 	
 	private boolean active;
 	private LocalDateTime effectiveFrom;

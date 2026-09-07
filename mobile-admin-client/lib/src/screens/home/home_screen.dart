@@ -13,6 +13,7 @@ import '../profile/profile_screen.dart';
 import '../corridors/add_corridor_screen.dart';
 import '../subscriptions/pending_subscriptions_screen.dart';
 import '../fare_configs/fare_configs_screen.dart';
+import '../drivers/pending_drivers_screen.dart';
 
 /// Main dashboard shown after login.
 ///
@@ -516,6 +517,14 @@ class _DashboardTab extends StatelessWidget {
               icon: Icons.payments_outlined,
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FareConfigsScreen()));
+              },
+            ),
+            const SizedBox(height: 12),
+            VamoButton(
+              label: 'طلبات السائقين المعلقة',
+              icon: Icons.directions_car_filled_rounded,
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PendingDriversScreen()));
               },
             ),
           ],
