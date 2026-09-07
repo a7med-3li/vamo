@@ -3,7 +3,6 @@ package com.vamo.admin.service;
 import com.vamo.admin.dto.*;
 import com.vamo.common.enums.ApprovalStatus;
 import com.vamo.common.enums.RideStatus;
-import com.vamo.common.enums.SubscriptionPlan;
 import com.vamo.common.enums.SubscriptionStatus;
 import com.vamo.common.enums.UserRole;
 import com.vamo.common.exception.NotFoundException;
