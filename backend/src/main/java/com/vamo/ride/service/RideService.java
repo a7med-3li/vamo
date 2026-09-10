@@ -4,7 +4,6 @@ import com.vamo.common.enums.RideStatus;
 import com.vamo.common.events.RideRequestedEvent;
 import com.vamo.common.exception.BadRequestException;
 import com.vamo.common.exception.NotFoundException;
-import com.vamo.ride.dto.ManifestItem;
 import com.vamo.ride.dto.RideHistoryItem;
 import com.vamo.ride.dto.RideRequestDto;
 import com.vamo.ride.entity.Ride;
@@ -30,43 +29,6 @@ public class RideService {
     private final DriverWalletService driverWalletService;
     private final ApplicationEventPublisher eventPublisher;
     
-//    @Transactional
-//    public BookRideResponse bookRide(UUID passengerId, BookRideRequest request) {
-//        LocalTime now = LocalTime.now();
-//        if (now.isBefore(OPERATION_START) || now.isAfter(OPERATION_END)) {
-//            throw new BadRequestException("Booking is only available between 7:00 AM and 6:00 PM");
-//        }
-//
-//        long activeRides = rideRepository.countByPassengerIdAndStatus(passengerId, RideStatus.BOOKED);
-//        if (activeRides > 0) {
-//            throw new BadRequestException("You already have an active booking");
-//        }
-//
-//        subscriptionService.deductRide(request.subscriptionId());
-//
-//        String pin = String.format("%04d", RANDOM.nextInt(10000));
-//
-//        Ride ride = Ride.builder()
-//                .passengerId(passengerId)
-//                .corridorId(request.corridorId())
-//                .pickupVbsId(request.pickupVbsId())
-//                .dropoffVbsId(request.dropoffVbsId())
-//                .subscriptionId(request.subscriptionId())
-//                .status(RideStatus.BOOKED)
-//                .pin(pin)
-//                .departureTime(Instant.now().plusSeconds(1800))
-//                .requestedAt(Instant.now())
-//                .build();
-//
-//        Ride saved = rideRepository.save(ride);
-//
-//        return new BookRideResponse(
-//                saved.getId(), saved.getPin(), saved.getStatus(),
-//                saved.getDepartureTime(), saved.getCorridorId(),
-//                saved.getPickupVbsId(), saved.getDropoffVbsId()
-//        );
-//    }
-
     @Transactional
     public void publishRideRequest(UUID passengerId, RideRequestDto request) {
         Ride ride = Ride.builder()

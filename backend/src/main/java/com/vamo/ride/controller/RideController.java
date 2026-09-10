@@ -3,18 +3,14 @@ package com.vamo.ride.controller;
 import com.vamo.addressing.entity.Address;
 import com.vamo.common.annotation.CurrentPassengerId;
 import com.vamo.common.dto.ApiResponse;
-import com.vamo.common.entity.Location;
 import com.vamo.ride.dto.*;
-import com.vamo.ride.service.RideEstimationService;
 import com.vamo.ride.service.RideService;
 import com.vamo.ride.service.interfaces.RoutingService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -25,24 +21,6 @@ public class RideController {
 
     private final RoutingService routingService;
     private final RideService rideService;
-
-//    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
-//    @PostMapping("/book")
-//    public ResponseEntity<BookRideResponse> bookRide(
-//            @AuthenticationPrincipal String userId,
-//            @Valid @RequestBody BookRideRequest request) {
-//        return ResponseEntity.ok(rideService.bookRide(UUID.fromString(userId), request));
-//    }
-
-    @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
-    @PostMapping("/{id}/confirm")
-    public ResponseEntity<ApiResponse> confirmBoarding(
-            @AuthenticationPrincipal String userId,
-            @PathVariable UUID id,
-            @Valid @RequestBody ConfirmBoardingRequest request) {
-        rideService.confirmBoarding(UUID.fromString(userId), id, request.pin());
-        return ResponseEntity.ok(new ApiResponse(true, "Boarding confirmed"));
-    }
 
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @PostMapping("/{id}/complete")

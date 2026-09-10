@@ -6,7 +6,6 @@ import com.vamo.addressing.repository.AddressingRepository;
 import com.vamo.ride.service.interfaces.RoutingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -15,8 +14,6 @@ import java.util.List;
 public class AddressingService {
     private final AddressingRepository addressingRepository;
     private final RoutingService routingService;
-    //TODO: add the logic to provide an addressing layer before maps API call
-    //TODO-Now: implement the logic to search for the address in googleMaps and store the results in the local DB
 
     public AutoCompleteResponse autoComplete(String address) {
         try {
