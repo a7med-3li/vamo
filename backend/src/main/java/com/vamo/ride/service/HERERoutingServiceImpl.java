@@ -33,8 +33,7 @@ import java.util.Optional;
 public class HERERoutingServiceImpl implements RoutingService {
 
     // TODO find a better way for the api integration and consume the response
-
-    private final UpdatingAddressCache updatingAddressCache;
+    
     private final FareCalculationService fareCalculationService;
     
     @Qualifier("routingClient")
