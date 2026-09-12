@@ -1,33 +1,37 @@
 package com.vamo.user.service;
 
+import com.vamo.common.enums.ApprovalStatus;
 import com.vamo.common.enums.Gender;
 import com.vamo.common.enums.UserRole;
 import com.vamo.common.events.DriverRegisteredEvent;
 import com.vamo.common.events.PassengerRegisteredEvent;
-import com.vamo.common.exception.UserAlreadyExistsException;
 import com.vamo.common.exception.UserNotFoundException;
 import com.vamo.common.mapper.Mappers;
 import com.vamo.common.dto.DriverRegisterRequest;
 import com.vamo.common.dto.PassengerRegisterRequest;
+import com.vamo.driver.entity.DriverProfile;
+import com.vamo.driver.repository.DriverProfileRepository;
+import com.vamo.passenger.entity.PassengerProfile;
+import com.vamo.passenger.repository.PassengerProfileRepository;
 import com.vamo.user.dto.UpdateUserRequest;
 import com.vamo.user.dto.UserInfo;
 import com.vamo.user.dto.UserResponse;
 import com.vamo.user.entity.User;
 import com.vamo.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-
 import static com.vamo.common.util.Helpers.mapToResponse;
-
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @Validated
 @Transactional
@@ -36,31 +40,32 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final Mappers mappers;
-    private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
+    private final DriverProfileRepository driverProfileRepository;
+    private final PassengerProfileRepository passengerProfileRepository;
     
-    public User registerPassenger(PassengerRegisterRequest req) {
+    @Transactional
+    public void registerPassenger(PassengerRegisterRequest req) {
         User user = userRepository.findByPhoneNumber(req.phoneNumber())
                 .orElseGet(() -> createBaseUser(req.phoneNumber(), req.firstName(),req.lastName(), UserRole.PASSENGER, req.password(),req.gender()));
         
         if (user.getRole() == UserRole.DRIVER) {
             user.setRole(UserRole.BOTH);
         }
-        eventPublisher.publishEvent(new PassengerRegisteredEvent(user, req));
+        onPassengerRegistered(new PassengerRegisteredEvent(user, req));
         System.out.println("Passenger registered event published for user: " + user.getId());
-        return user;
     }
     
-    public User registerDriver(DriverRegisterRequest req) {
+    @Transactional
+    public void registerDriver(DriverRegisterRequest req) {
         User user = userRepository.findByPhoneNumber(req.phoneNumber())
                 .orElseGet(() -> createBaseUser(req.phoneNumber(), req.firstName(), req.lastName(), UserRole.DRIVER, req.password(), req.gender()));
 
         if (user.getRole() == UserRole.PASSENGER) {
             user.setRole(UserRole.BOTH);
         }
-        eventPublisher.publishEvent(new DriverRegisteredEvent(user, req));
+        onDriverRegistered(new DriverRegisteredEvent(user, req));
         System.out.println("Driver registered event published for user: " + user.getId());
-        return user;
     }
     
     private User createBaseUser(String phone, String firstName, String lastName, UserRole role, String password, Gender gender) {
@@ -136,5 +141,22 @@ public class UserService {
         mappers.updateUserFromRequest(request, user);
 
         return mappers.userToUserInfo(userRepository.save(user));
+    }
+    
+    private void onDriverRegistered(DriverRegisteredEvent event) {
+        log.info("Driver registered event received for user: {}", event.user().getId());
+        DriverProfile profile = DriverProfile.builder()
+                .user(event.user())
+                .nationalId(event.registerDriverRequest().nationalId())
+                .licenseNumber(event.registerDriverRequest().licenseNumber())
+                .walletBalance(BigDecimal.ZERO)
+                .isOnShift(false)
+                .approvalStatus(ApprovalStatus.PENDING)
+                .build();
+        driverProfileRepository.save(profile);
+    }
+    
+    public void onPassengerRegistered(PassengerRegisteredEvent event) {
+        passengerProfileRepository.save(new PassengerProfile(event.user().getId(), event.user(), List.of()));
     }
 }

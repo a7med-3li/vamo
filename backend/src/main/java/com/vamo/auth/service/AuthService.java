@@ -3,7 +3,7 @@ package com.vamo.auth.service;
 import com.vamo.auth.security.SecurityUser;
 import com.vamo.common.dto.DriverRegisterRequest;
 import com.vamo.common.dto.PassengerRegisterRequest;
-import com.vamo.passenger.entity.PassengerProfile;
+import com.vamo.driver.repository.DriverProfileRepository;
 import com.vamo.passenger.repository.PassengerProfileRepository;
 import com.vamo.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +31,7 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final JwtEncoder jwtEncoder;
     private final PassengerProfileRepository passengerProfileRepository;
+    private final DriverProfileRepository driverProfileRepository;
     
     public SecurityUser authenticate(String email, String password) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
@@ -51,7 +52,7 @@ public class AuthService {
                 .subject(securityUser.user().getId().toString())
                 .claim("roles", scope);
         
-        if (!scope.contains("ADMIN")) {
+        if (scope.contains("PASSENGER") || scope.equals("BOTH")) {
 	        
 	        passengerProfileRepository
 			        .findByUserId(securityUser.user().getId())
@@ -60,6 +61,17 @@ public class AuthService {
                             passengerProfile.getId().toString()));
 	        
         }
+        
+        if (scope.contains("DRIVER")    || scope.equals("BOTH")) {
+            
+            driverProfileRepository
+                    .findByUserId(securityUser.user().getId())
+                    .ifPresent(driverProfile
+                            -> claimsBuilder.claim("driverId",
+                            driverProfile.getId().toString()));
+            
+        }
+        
         JwtClaimsSet claims = claimsBuilder.build();
         
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();

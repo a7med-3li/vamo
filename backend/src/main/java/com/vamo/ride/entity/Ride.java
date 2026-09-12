@@ -50,7 +50,6 @@ public class Ride {
     private Location dropOff;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private RideStatus status;
 
     private BigDecimal estimatedFare;
