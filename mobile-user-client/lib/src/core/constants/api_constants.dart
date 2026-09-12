@@ -15,7 +15,7 @@ class ApiConstants {
 
   static const String _localBaseUrl = 'http://localhost:8080';
   /// Active base URL used by the app.
-  static const String baseUrl = _devBaseUrl;
+  static const String baseUrl = _localBaseUrl;
 
   // ── Auth ────────────────────────────────────────────────────────────
   static const String registerPassenger = '/api/v1/auth/register/passenger';
@@ -43,11 +43,12 @@ class ApiConstants {
   static const String subscriptionHistory = '/api/v1/subscriptions/history';
   static String cancelSubscription(int id) => '/api/v1/subscriptions/$id/cancel';
 
-  // ── Rides (future use) ─────────────────────────────────────────────
+  // ── Rides ─────────────────────────────────────────────────────────
   static const String rideHistory = '/api/v3/ride/history';
   static const String rideSearch = '/api/v3/ride/search';
   static const String estimateRide = '/api/v3/ride/estimate-ride';
   static const String rideRequest = '/api/v3/ride/request';
+  static const String rideRequestPublish = '/api/v3/ride/request/publish';
 
   // ── Address / autocomplete / search (Book a Ride) ─────────────────
   static const String addressAutoComplete = '/api/v1/address/autoComplete';

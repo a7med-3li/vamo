@@ -44,6 +44,5 @@ class ApiConstants {
       '/api/v1/drivers/ride-requests/$rideId/accept';
 
   /// Server-sent events stream for live ride requests.
-  static const String rideRequestStream =
-      '/api/v1/drivers/ride-requests/stream';
+  static const String rideRequestStream = '/api/v1/dispatch/drivers/stream';
 }

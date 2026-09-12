@@ -47,6 +47,7 @@ class DriverProvider extends ChangeNotifier {
   String? _acceptError;
   final Set<String> _dismissed = {};
   StreamSubscription<RideStreamEvent>? _streamSub;
+  Timer? _reconnectTimer;
 
   List<RideRequest> get rideRequests => _rideRequests;
   bool get isLoadingRideRequests => _isLoadingRideRequests;
@@ -59,7 +60,7 @@ class DriverProvider extends ChangeNotifier {
   // ── Profile ────────────────────────────────────────────────────────
 
   /// Fetches the driver profile from the backend. When already on shift,
-  /// (re)opens the live stream and refreshes the pending requests.
+  /// (re)opens the live ride-request stream.
   Future<void> loadProfile() async {
     _isLoadingProfile = true;
     _profileError = null;
@@ -69,7 +70,9 @@ class DriverProvider extends ChangeNotifier {
       _profile = await _driverRepo.getProfile();
       if (_profile?.onShift ?? false) {
         _startStream();
-        await loadRideRequests();
+      } else if (_streamSub != null || _reconnectTimer != null) {
+        _stopStream();
+        _rideRequests = [];
       }
     } on ApiException catch (e) {
       _profileError = e.message;
@@ -98,7 +101,6 @@ class DriverProvider extends ChangeNotifier {
 
       if (newOnShift) {
         _startStream();
-        await loadRideRequests();
       } else {
         _stopStream();
         _rideRequests = [];
@@ -115,31 +117,6 @@ class DriverProvider extends ChangeNotifier {
   }
 
   // ── Ride requests ──────────────────────────────────────────────────
-
-  /// Loads the current pending ride requests (snapshot / pull-to-refresh).
-  Future<void> loadRideRequests() async {
-    if (!isOnShift) {
-      _rideRequests = [];
-      notifyListeners();
-      return;
-    }
-
-    _isLoadingRideRequests = true;
-    _rideRequestsError = null;
-    notifyListeners();
-
-    try {
-      final list = await _driverRepo.getPendingRideRequests();
-      _rideRequests = list.where((r) => !_dismissed.contains(r.id)).toList();
-    } on ApiException catch (e) {
-      _rideRequestsError = e.message;
-    } catch (_) {
-      _rideRequestsError = 'تعذر تحميل طلبات الركوب.';
-    }
-
-    _isLoadingRideRequests = false;
-    notifyListeners();
-  }
 
   /// Accepts a ride request, binding it to the current driver.
   /// Returns `true` when accepted successfully.
@@ -181,21 +158,37 @@ class DriverProvider extends ChangeNotifier {
 
   void _startStream() {
     if (_streamSub != null) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
     _streamSub = _driverRepo.streamRideRequests().listen(
           _handleStreamEvent,
           onError: (Object _) {
             _streamSub = null;
             notifyListeners();
+            _scheduleReconnect();
           },
           onDone: () {
             _streamSub = null;
             notifyListeners();
+            _scheduleReconnect();
           },
           cancelOnError: true,
         );
   }
 
+  void _scheduleReconnect() {
+    if (!isOnShift || _reconnectTimer != null) return;
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      _reconnectTimer = null;
+      if (!isOnShift) return;
+      _startStream();
+    });
+  }
+
   void _stopStream() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     _streamSub?.cancel();
     _streamSub = null;
   }

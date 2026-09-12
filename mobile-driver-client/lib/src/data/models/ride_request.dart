@@ -61,6 +61,12 @@ class RideRequest {
 
   factory RideRequest.fromJson(Map<String, dynamic> json) {
     double numVal(Object? v) => (v as num?)?.toDouble() ?? 0;
+    double coord(Map<String, dynamic>? location, String key) =>
+        location == null ? 0 : numVal(location[key]);
+
+    final pickUp = json['pickUp'] as Map<String, dynamic>?;
+    final dropOff = json['dropOff'] as Map<String, dynamic>?;
+
     return RideRequest(
       id: json['rideId']?.toString() ?? json['id']?.toString() ?? '',
       passengerName: json['passengerName'] as String? ?? '',
@@ -69,10 +75,10 @@ class RideRequest {
       requestedAt:
           DateTime.tryParse(json['requestedAt']?.toString() ?? '') ??
               DateTime.now(),
-      pickUpLat: numVal(json['pickUpLat']),
-      pickUpLng: numVal(json['pickUpLng']),
-      dropOffLat: numVal(json['dropOffLat']),
-      dropOffLng: numVal(json['dropOffLng']),
+      pickUpLat: coord(pickUp, 'latitude'),
+      pickUpLng: coord(pickUp, 'longitude'),
+      dropOffLat: coord(dropOff, 'latitude'),
+      dropOffLng: coord(dropOff, 'longitude'),
       distanceInKm: numVal(json['distanceInKm']),
       durationSeconds: (json['duration'] as num?)?.toInt() ?? 0,
       vehicleType: json['vehicleType'] as String? ?? '',

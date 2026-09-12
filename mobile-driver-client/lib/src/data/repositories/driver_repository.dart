@@ -50,9 +50,10 @@ class DriverRepository {
   /// Live stream of ride-request events (server-sent events).
   ///
   /// Expected SSE payloads from the backend:
+  ///  - `event: ride_request` → `data: {"ride":{DriverRideRequestItem}}`
+  ///    sent for every newly requested ride.
   ///  - `event: rides-snapshot` → `data: {"rides":[{DriverRideRequestItem}]}`
   ///    sent once when the connection is opened.
-  ///  - `event: ride-new`       → `data: {DriverRideRequestItem}`
   ///  - `event: ride-accepted`  → `data: {"rideId":"..."}`
   Stream<RideStreamEvent> streamRideRequests() async* {
     final http.StreamedResponse response;
@@ -113,7 +114,10 @@ class DriverRepository {
         return RideStreamEvent(RideStreamEventType.snapshot, rides: rides);
 
       case 'ride-new':
-        final ride = RideRequest.fromJson(decoded);
+      case 'ride_request':
+        final rideJson =
+            decoded['ride'] as Map<String, dynamic>? ?? decoded;
+        final ride = RideRequest.fromJson(rideJson);
         if (ride.id.isEmpty) return null;
         return RideStreamEvent(RideStreamEventType.newRide, ride: ride);
 

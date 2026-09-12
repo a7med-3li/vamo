@@ -106,12 +106,20 @@ class RideBookProvider extends ChangeNotifier {
   List<RideOption>? _rideOptions;
   bool _isRequestingRide = false;
   String? _rideRequestError;
+  RideOption? _selectedOption;
+  bool _isPublishing = false;
+  String? _publishError;
+  bool _published = false;
 
   bool get isLocating => _isLocating;
   bool get isRequestingRide => _isRequestingRide;
   bool get hasRideOptions => _rideOptions != null && _rideOptions!.isNotEmpty;
   List<RideOption>? get rideOptions => _rideOptions;
   String? get rideRequestError => _rideRequestError;
+  RideOption? get selectedOption => _selectedOption;
+  bool get isPublishing => _isPublishing;
+  String? get publishError => _publishError;
+  bool get hasPublished => _published;
   PickupLocation? get deviceLocation => _deviceLocation;
   String? get locationError => _locationError;
   bool get hasDeviceLocation => _deviceLocation != null;
@@ -328,17 +336,89 @@ class RideBookProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Selects the ride option the passenger wants to publish.
+  void selectOption(RideOption option) {
+    _selectedOption = option;
+    _publishError = null;
+    notifyListeners();
+  }
+
+  /// Publishes the selected ride option so drivers receive it in real time.
+  /// No-op until an option has been selected and both locations are pinned.
+  Future<void> publishRequest() async {
+    final pickup = pickupCoordinates;
+    final dropoff = _dropoff.selected;
+    final option = _selectedOption;
+    if (pickup == null ||
+        dropoff == null ||
+        dropoff.lat == null ||
+        dropoff.lng == null ||
+        option == null) {
+      return;
+    }
+
+    _isPublishing = true;
+    _publishError = null;
+    notifyListeners();
+
+    try {
+      await _rideRepo.publishRideRequest(
+        pickupLatitude: pickup.latitude,
+        pickupLongitude: pickup.longitude,
+        dropoffLatitude: dropoff.lat!,
+        dropoffLongitude: dropoff.lng!,
+        durationSeconds: option.duration,
+        distanceInKm: option.distance / 1000,
+        vehicleType: option.vehicleType,
+        price: option.price,
+      );
+      if (!_isPublishing) return; // cleared while the request was in flight
+      _published = true;
+    } on ApiException catch (e) {
+      if (!_isPublishing) return;
+      _publishError = e.message;
+    } catch (e) {
+      if (!_isPublishing) return;
+      debugPrint('⚠️ [RideBookProvider] publishRequest error: $e');
+      _publishError = 'تعذر إرسال طلب الرحلة. حاول مرة أخرى.';
+    }
+
+    _isPublishing = false;
+    notifyListeners();
+  }
+
+  /// Returns the caller to the option list to book another ride while
+  /// keeping the pinned pick-up / drop-off locations.
+  void resetBooking() {
+    _selectedOption = null;
+    _published = false;
+    _publishError = null;
+    _isPublishing = false;
+    _rideOptions = null;
+    _rideRequestError = null;
+    _isRequestingRide = false;
+    notifyListeners();
+  }
+
   /// Clears any fetched/rendered ride options without notifying (the caller
   /// is expected to notifyListeners afterwards).
   void _clearRideRequest() {
     if (_rideOptions == null &&
         _rideRequestError == null &&
-        !_isRequestingRide) {
+        _selectedOption == null &&
+        _publishError == null &&
+        !_isRequestingRide &&
+        !_isPublishing &&
+        !_published) {
       return;
     }
     _rideOptions = null;
     _rideRequestError = null;
     _isRequestingRide = false;
+    _selectedOption = null;
+    _publishError = null;
+    _isPublishing = false;
+    _published = false;
   }
 }
 
