@@ -1,6 +1,7 @@
 package com.vamo.ride.controller;
 
 import com.vamo.addressing.entity.Address;
+import com.vamo.common.annotation.CurrentDriverId;
 import com.vamo.common.annotation.CurrentPassengerId;
 import com.vamo.common.dto.ApiResponse;
 import com.vamo.ride.dto.*;
@@ -68,6 +69,12 @@ public class RideController {
     @PostMapping("/request/publish")
     public ResponseEntity<Void> publishRideRequest(@CurrentPassengerId UUID passengerId, @RequestBody RideRequestDto rideRequestDto) {
         rideService.publishRideRequest(passengerId, rideRequestDto);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/request/{id}/accept")
+    public ResponseEntity<Void> acceptRideRequest(@PathVariable UUID id, @CurrentDriverId UUID driverId) {
+        rideService.acceptRide(id, driverId);
         return ResponseEntity.ok().build();
     }
 }

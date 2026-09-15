@@ -1,6 +1,5 @@
 package com.vamo.notification.controller;
 
-import com.vamo.common.annotation.CurrentPassengerId;
 import com.vamo.common.dto.ApiResponse;
 import com.vamo.notification.dto.NotificationResponseDto;
 import com.vamo.notification.entity.Notification;
@@ -21,7 +20,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
+    @PreAuthorize("hasAnyRole('PASSENGER', 'DRIVER', 'ADMIN', 'BOTH')")
     @GetMapping
     public ResponseEntity<List<NotificationResponseDto>> getAllNotifications(
             @AuthenticationPrincipal String userId,
@@ -39,14 +38,14 @@ public class NotificationController {
         );
     }
 
-    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
+    @PreAuthorize("hasAnyRole('PASSENGER', 'DRIVER', 'ADMIN', 'BOTH')")
     @GetMapping("/unread-count")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal String userId) {
         UUID passengerId = UUID.fromString(userId);
         return ResponseEntity.ok(notificationService.countUnreadByUserId(passengerId));
     }
-
-    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
+    
+    @PreAuthorize("hasAnyRole('PASSENGER', 'DRIVER', 'ADMIN', 'BOTH')")
     @PostMapping("/{id}/read")
     public ResponseEntity<ApiResponse> markAsRead(@PathVariable UUID id) {
         notificationService.markAsRead(id);

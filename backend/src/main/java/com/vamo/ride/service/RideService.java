@@ -2,8 +2,10 @@ package com.vamo.ride.service;
 
 import com.vamo.common.enums.RideStatus;
 import com.vamo.common.events.RideRequestedEvent;
+import com.vamo.common.events.RideTakenEvent;
 import com.vamo.common.exception.BadRequestException;
 import com.vamo.common.exception.NotFoundException;
+import com.vamo.common.exception.RideAlreadyTakenException;
 import com.vamo.ride.dto.RideHistoryItem;
 import com.vamo.ride.dto.RideRequestDto;
 import com.vamo.ride.entity.Ride;
@@ -50,6 +52,19 @@ public class RideService {
     }
     
     @Transactional
+    public void acceptRide(UUID rideId, UUID driverId) {
+        int updated = rideRepository.acceptRide(rideId, driverId, Instant.now());
+        if (updated == 0) {
+            throw new RideAlreadyTakenException("Ride no longer available");
+        }
+        publishRideTakenEvent(rideId);
+        // proceed: notify rider, notify other drivers ride is gone, etc.
+    }
+    
+    public void publishRideTakenEvent(UUID rideId){
+        eventPublisher.publishEvent(new RideTakenEvent(rideId));
+    }
+    @Transactional
     public void confirmBoarding(UUID driverId, UUID rideId, String pin) {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
@@ -86,6 +101,7 @@ public class RideService {
         rideRepository.save(ride);
     }
 
+    //todo: refactor this
     @Transactional
     public void cancelRide(UUID rideId, UUID userId) {
         Ride ride = rideRepository.findById(rideId)
@@ -114,6 +130,10 @@ public class RideService {
                 .toList();
     }
     
+    //note: why does this exist? we should be able to get the
+    // driver history from the passenger history,
+    // since the passenger history contains all rides,
+    // including those with drivers. maybe this is for a driver dashboard?
     public List<RideHistoryItem> getDriverHistory(UUID driverId) {
         return rideRepository.findByDriverIdOrderByDepartureTimeAsc(driverId)
                 .stream()

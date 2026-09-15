@@ -36,3 +36,5 @@ router_api.yaml
 
 # Sibling mobile project not part of this repo
 /mobile-admin-client/
+
+/.opencode

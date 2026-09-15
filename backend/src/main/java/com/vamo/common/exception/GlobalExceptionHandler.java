@@ -137,4 +137,15 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+    
+    @ExceptionHandler(RideAlreadyTakenException.class)
+    public ResponseEntity<ErrorResponse> handleRideAlreadyTaken(RideAlreadyTakenException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.GONE.value(),
+                ex.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+        return new ResponseEntity<>(error, HttpStatus.GONE);
+    }
 }

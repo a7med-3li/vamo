@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import com.vamo.dispatch.dto.DispatchedRide;
+import com.vamo.dispatch.dto.TakenRide;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -35,6 +36,21 @@ public class DriverConnectionManager {
 			try {
 				emitter.send(SseEmitter.event()
 						.name("ride_request")
+						.data(ride, MediaType.APPLICATION_JSON));
+			} catch (IOException e) {
+				emitter.completeWithError(e);
+				activeEmitters.remove(driverId);
+			}
+		}
+	}
+	
+	public void pushTakenRideToDriver(String driverId, TakenRide ride) {
+		SseEmitter emitter = activeEmitters.get(driverId);
+		
+		if (emitter != null) {
+			try {
+				emitter.send(SseEmitter.event()
+						.name("ride_taken")
 						.data(ride, MediaType.APPLICATION_JSON));
 			} catch (IOException e) {
 				emitter.completeWithError(e);
