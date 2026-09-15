@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
@@ -147,7 +148,13 @@ class ApiClient {
 
   dynamic _processResponse(http.Response response) {
     final body = response.body.trim();
-    final decoded = body.isEmpty ? null : jsonDecode(body);
+    dynamic decoded;
+
+    try {
+      decoded = body.isEmpty ? null : jsonDecode(body);
+    } catch (e) {
+      debugPrint('🚨 [ApiClient] Failed to decode JSON: $body');
+    }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded ?? <String, dynamic>{};
@@ -156,6 +163,12 @@ class ApiClient {
     // Error response
     if (decoded is Map<String, dynamic>) {
       throw ApiException.fromJson(decoded, statusCode: response.statusCode);
+    }
+
+    // Several backend handlers return a plain-string body — surface it
+    // instead of a generic message.
+    if (body.isNotEmpty && !body.startsWith('<')) {
+      throw ApiException(body, statusCode: response.statusCode);
     }
 
     throw ApiException(

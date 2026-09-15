@@ -41,7 +41,7 @@ class ApiConstants {
 
   /// Accepts a ride request, binding it to the current driver.
   static String acceptRideRequest(String rideId) =>
-      '/api/v1/drivers/ride-requests/$rideId/accept';
+      '/api/v3/ride/request/$rideId/accept';
 
   /// Server-sent events stream for live ride requests.
   static const String rideRequestStream = '/api/v1/dispatch/drivers/stream';

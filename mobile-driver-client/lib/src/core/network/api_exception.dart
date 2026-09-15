@@ -33,6 +33,10 @@ class ApiException implements Exception {
   bool get isAuthError =>
       statusCode == 401 || statusCode == 403;
 
+  /// True when the ride was already accepted by another driver
+  /// (the backend answers 410 GONE for that case).
+  bool get isRideAlreadyTaken => statusCode == 410;
+
   @override
   String toString() =>
       'ApiException(statusCode: $statusCode, message: $message, errors: $errors)';

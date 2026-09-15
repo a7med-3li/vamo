@@ -197,11 +197,19 @@ class ApiClient {
         throw ApiException.fromJson(decoded, statusCode: response.statusCode);
       }
       
-      // Fallback meaningful message if it's not JSON
+      // Fallback meaningful message if it's not JSON. Several backend
+      // handlers return a plain-string body (e.g. 400/404), so prefer the
+      // raw message when available instead of hiding it.
       String message = 'حدث خطأ في الخادم (${response.statusCode}).';
-      if (response.statusCode == 400) message = 'طلب غير صالح. يرجى التحقق من البيانات.';
-      if (response.statusCode == 404) message = 'الخدمة غير موجودة.';
-      if (response.statusCode == 500) message = 'خطأ داخلي في الخادم. حاول لاحقاً.';
+      if (body.isNotEmpty && !body.startsWith('<')) {
+        message = body;
+      } else if (response.statusCode == 400) {
+        message = 'طلب غير صالح. يرجى التحقق من البيانات.';
+      } else if (response.statusCode == 404) {
+        message = 'الخدمة غير موجودة.';
+      } else if (response.statusCode == 500) {
+        message = 'خطأ داخلي في الخادم. حاول لاحقاً.';
+      }
       
       throw ApiException(message, statusCode: response.statusCode);
     }

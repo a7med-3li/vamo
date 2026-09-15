@@ -95,8 +95,8 @@ enum RideStreamEventType {
   /// A new ride request was published by a passenger.
   newRide,
 
-  /// A ride request was accepted (by another driver).
-  rideAccepted,
+  /// A ride request was taken (accepted by another driver).
+  rideTaken,
 }
 
 class RideStreamEvent {
@@ -110,6 +110,6 @@ class RideStreamEvent {
   /// Populated for [RideStreamEventType.newRide].
   final RideRequest? ride;
 
-  /// Populated for [RideStreamEventType.rideAccepted].
+  /// Populated for [RideStreamEventType.rideTaken].
   final String? rideId;
 }

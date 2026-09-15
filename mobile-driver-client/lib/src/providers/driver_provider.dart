@@ -132,12 +132,15 @@ class DriverProvider extends ChangeNotifier {
       _rideRequests.removeWhere((r) => r.id == rideRequestId);
       return true;
     } on ApiException catch (e) {
-      // The request may have already been accepted by another driver.
-      _rideRequests.removeWhere((r) => r.id == rideRequestId);
+      // Only drop the request when it was genuinely lost to another driver
+      // (410 GONE = RideAlreadyTaken). On transient errors keep it so the
+      // driver can retry instead of silently losing a still-valid offer.
+      if (e.isRideAlreadyTaken) {
+        _rideRequests.removeWhere((r) => r.id == rideRequestId);
+      }
       _acceptError = e.message;
       return false;
     } catch (_) {
-      _rideRequests.removeWhere((r) => r.id == rideRequestId);
       _acceptError = 'تعذر قبول الطلب.';
       return false;
     } finally {
@@ -210,9 +213,9 @@ class DriverProvider extends ChangeNotifier {
         }
         break;
 
-      case RideStreamEventType.rideAccepted:
+      case RideStreamEventType.rideTaken:
         final rideId = event.rideId;
-        if (rideId != null && _acceptingId != rideId) {
+        if (rideId != null) {
           _rideRequests.removeWhere((r) => r.id == rideId);
         }
         break;

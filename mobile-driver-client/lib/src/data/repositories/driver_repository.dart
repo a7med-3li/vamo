@@ -54,7 +54,9 @@ class DriverRepository {
   ///    sent for every newly requested ride.
   ///  - `event: rides-snapshot` → `data: {"rides":[{DriverRideRequestItem}]}`
   ///    sent once when the connection is opened.
-  ///  - `event: ride-accepted`  → `data: {"rideId":"..."}`
+  ///  - `event: ride_taken`    → `data: {"rideId":"..."}`
+  ///    sent when a ride request is accepted by a driver, so every other
+  ///    connected driver can remove it from their offered list.
   Stream<RideStreamEvent> streamRideRequests() async* {
     final http.StreamedResponse response;
     try {
@@ -121,11 +123,12 @@ class DriverRepository {
         if (ride.id.isEmpty) return null;
         return RideStreamEvent(RideStreamEventType.newRide, ride: ride);
 
-      case 'ride-accepted':
+      case 'ride_taken':
+      case 'ride-taken':
         final rideId = decoded['rideId']?.toString();
         if (rideId == null || rideId.isEmpty) return null;
         return RideStreamEvent(
-          RideStreamEventType.rideAccepted,
+          RideStreamEventType.rideTaken,
           rideId: rideId,
         );
 
