@@ -1,5 +1,6 @@
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
+import '../models/active_ride.dart';
 import '../models/ride_option.dart';
 
 /// Handles ride-request API calls.
@@ -74,5 +75,17 @@ class RideRepository {
         'price': price,
       },
     );
+  }
+
+  /// Fetches the passenger's current active ride (MATCHED / STARTED), if any.
+  ///
+  /// The backend answers 404/410 when there is no active ride.
+  Future<PassengerActiveRide?> getActiveRide() async {
+    final data = await _api.get(ApiConstants.rideActive);
+    if (data is Map<String, dynamic>) {
+      final rideJson = (data['ride'] as Map<String, dynamic>?) ?? data;
+      return PassengerActiveRide.fromJson(rideJson);
+    }
+    return null;
   }
 }

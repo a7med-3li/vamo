@@ -126,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 24),
                   _buildApprovalNotice(context),
                   const SizedBox(height: 12),
+                  _buildActiveTripSection(context),
                   _buildRideRequestsSection(context),
                 ],
               ),
@@ -557,6 +558,179 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Active trip section ─────────────────────────────────────────────
+
+  Widget _buildActiveTripSection(BuildContext context) {
+    final driver = context.watch<DriverProvider>();
+    final ride = driver.activeRide;
+    if (ride == null) return const SizedBox.shrink();
+
+    final started = ride.isStarted;
+    final busy = driver.isStartingTrip || driver.isCompletingTrip;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF05472A), Color(0xFF0A6B3E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: VamoTheme.accent.withValues(alpha: 0.22),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF166534),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    started
+                        ? Icons.local_taxi_rounded
+                        : Icons.navigation_rounded,
+                    color: VamoTheme.accent,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'رحلتك الحالية',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        started ? 'بدأت الرحلة — السائق في الطريق إلى الوجهة' : 'في الطريق إلى الراكب',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${ride.price.toStringAsFixed(0)} ج.م',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: VamoTheme.accent,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Trip details
+            _tripLine(context, Icons.circle_outlined, ride.pickupLabel,
+                color: VamoTheme.accent),
+            const SizedBox(height: 10),
+            _tripLine(context, Icons.place_outlined, ride.destinationLabel,
+                color: VamoTheme.alert),
+            if (driver.activeRideError != null) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: VamoTheme.alert, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      driver.activeRideError!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 18),
+            // Actions
+            busy
+                ? const SizedBox(
+                    height: 44,
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: VamoTheme.accent,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                    ),
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: VamoButton(
+                          label: started ? 'إنهاء الرحلة' : 'بدأت الرحلة',
+                          icon: started
+                              ? Icons.flag_rounded
+                              : Icons.play_circle_fill_rounded,
+                          onPressed: started
+                              ? () => _handleCompleteTrip(context)
+                              : () => _handleStartTrip(context),
+                        ),
+                      ),
+                    ],
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleStartTrip(BuildContext context) async {
+    final driver = context.read<DriverProvider>();
+    final started = await driver.startCurrentTrip();
+    if (!context.mounted) return;
+
+    if (started) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(_statusSnackBar('بدأت الرحلة.'));
+    } else {
+      final reason = driver.activeRideError ?? 'تعذر بدء الرحلة.';
+      ScaffoldMessenger.of(context).showSnackBar(_statusSnackBar(reason));
+    }
+  }
+
+  Future<void> _handleCompleteTrip(BuildContext context) async {
+    final driver = context.read<DriverProvider>();
+    final completed = await driver.completeCurrentTrip();
+    if (!context.mounted) return;
+
+    if (completed) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(_statusSnackBar('تم إنهاء الرحلة بنجاح.'));
+    } else {
+      final reason = driver.activeRideError ?? 'تعذر إنهاء الرحلة.';
+      ScaffoldMessenger.of(context).showSnackBar(_statusSnackBar(reason));
+    }
+  }
+
   // ── Ride requests section ────────────────────────────────────────────
 
   Widget _buildRideRequestsSection(BuildContext context) {
@@ -846,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (accepted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(_statusSnackBar('تم قبول الطلب بنجاح.'));
+          .showSnackBar(_statusSnackBar('تم قبول الطلب. في الطريق إلى الراكب.'));
     } else {
       final reason = driver.acceptError ??
           'تعذر قبول الطلب. قد يكون تم الاستيلاء عليه من سائق آخر.';

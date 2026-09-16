@@ -56,6 +56,28 @@ class RideRequest {
     }
   }
 
+  /// Whether this ride has already been started by the driver.
+  bool get isStarted => status.toUpperCase() == 'STARTED';
+
+  /// Whether this ride has been matched to a driver.
+  bool get isMatched => status.toUpperCase() == 'MATCHED';
+
+  RideRequest copyWith({String? status}) => RideRequest(
+        id: id,
+        passengerName: passengerName,
+        passengerPhone: passengerPhone,
+        price: price,
+        requestedAt: requestedAt,
+        pickUpLat: pickUpLat,
+        pickUpLng: pickUpLng,
+        dropOffLat: dropOffLat,
+        dropOffLng: dropOffLng,
+        distanceInKm: distanceInKm,
+        durationSeconds: durationSeconds,
+        vehicleType: vehicleType,
+        status: status ?? this.status,
+      );
+
   static String _coord(double lat, double lng) =>
       '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
 

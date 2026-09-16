@@ -47,6 +47,28 @@ class DriverRepository {
     await _api.post(ApiConstants.acceptRideRequest(rideRequestId));
   }
 
+  /// Fetches the driver's current active ride (MATCHED / STARTED), if any.
+  ///
+  /// The backend answers 404 when the driver has no active ride.
+  Future<RideRequest?> getActiveRide() async {
+    final data = await _api.get(ApiConstants.driverActiveRide);
+    if (data is Map<String, dynamic>) {
+      final rideJson = (data['ride'] as Map<String, dynamic>?) ?? data;
+      return RideRequest.fromJson(rideJson);
+    }
+    return null;
+  }
+
+  /// Marks the current ride as started (driver arrived and began the trip).
+  Future<void> startRide(String rideId) async {
+    await _api.post(ApiConstants.startRide(rideId));
+  }
+
+  /// Completes the current ride.
+  Future<void> completeRide(String rideId) async {
+    await _api.post(ApiConstants.completeRide(rideId));
+  }
+
   /// Live stream of ride-request events (server-sent events).
   ///
   /// Expected SSE payloads from the backend:

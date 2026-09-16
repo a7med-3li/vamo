@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
+import '../data/models/active_ride.dart';
 import '../data/models/address_result.dart';
 import '../data/models/ride_option.dart';
 import '../data/repositories/address_repository.dart';
@@ -111,6 +114,13 @@ class RideBookProvider extends ChangeNotifier {
   String? _publishError;
   bool _published = false;
 
+  // ── Active ride tracking (post-publish) ─────────────────────────────
+  PassengerActiveRide? _activeRide;
+  bool _isCheckingActiveRide = false;
+  String? _activeRideError;
+  bool _rideFinished = false;
+  Timer? _activePollTimer;
+
   bool get isLocating => _isLocating;
   bool get isRequestingRide => _isRequestingRide;
   bool get hasRideOptions => _rideOptions != null && _rideOptions!.isNotEmpty;
@@ -120,9 +130,19 @@ class RideBookProvider extends ChangeNotifier {
   bool get isPublishing => _isPublishing;
   String? get publishError => _publishError;
   bool get hasPublished => _published;
+  PassengerActiveRide? get activeRide => _activeRide;
+  bool get isCheckingActiveRide => _isCheckingActiveRide;
+  String? get activeRideError => _activeRideError;
+
+  /// Whether the published ride has completed (was active, now gone).
+  bool get rideFinished => _rideFinished;
   PickupLocation? get deviceLocation => _deviceLocation;
   String? get locationError => _locationError;
   bool get hasDeviceLocation => _deviceLocation != null;
+
+  /// Whether the passenger currently has an in-progress ride to show.
+  bool get hasActiveTrip =>
+      _activeRide != null && (_activeRide!.isMatched || _activeRide!.isStarted);
 
   AddressSearchState get pickupSearch => _pickup;
   AddressSearchState get dropoffSearch => _dropoff;
@@ -374,6 +394,10 @@ class RideBookProvider extends ChangeNotifier {
       );
       if (!_isPublishing) return; // cleared while the request was in flight
       _published = true;
+      _activeRide = null;
+      _activeRideError = null;
+      _rideFinished = false;
+      _startActivePolling();
     } on ApiException catch (e) {
       if (!_isPublishing) return;
       _publishError = e.message;
@@ -387,9 +411,77 @@ class RideBookProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Starts polling for the passenger's active ride every few seconds.
+  /// Keeps going until the ride completes or disappears.
+  void _startActivePolling() {
+    _activePollTimer?.cancel();
+    _activePollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _refreshActiveRide(),
+    );
+    unawaited(_refreshActiveRide());
+  }
+
+  void stopTrackingActiveRide() {
+    _activePollTimer?.cancel();
+    _activePollTimer = null;
+    _activeRide = null;
+    _activeRideError = null;
+    _isCheckingActiveRide = false;
+  }
+
+  /// Stops polling and marks the ride as finished (was active, now gone).
+  void _markRideFinished() {
+    stopTrackingActiveRide();
+    _rideFinished = true;
+  }
+
+  Future<void> _refreshActiveRide() async {
+    if (_isCheckingActiveRide) return;
+    _isCheckingActiveRide = true;
+    notifyListeners();
+
+    try {
+      final ride = await _rideRepo.getActiveRide();
+      if (ride == null) {
+        if (_activeRide != null || _rideFinished) {
+          // Ride was in progress and has now ended → stop tracking.
+          _markRideFinished();
+        }
+        // Otherwise the ride was just published and no driver matched yet.
+      } else {
+        _activeRide = ride;
+        _activeRideError = null;
+      }
+    } on ApiException catch (e) {
+      // 404/410 means the ride ended (driver completed it) → stop tracking.
+      if (e.statusCode == 404 || e.statusCode == 410) {
+        if (_activeRide != null || _rideFinished) {
+          _markRideFinished();
+        }
+      } else {
+        _activeRideError = e.message;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [RideBookProvider] active ride error: $e');
+      _activeRideError = 'تعذر تحديث حالة الرحلة.';
+    }
+
+    _isCheckingActiveRide = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _activePollTimer?.cancel();
+    super.dispose();
+  }
+
   /// Returns the caller to the option list to book another ride while
   /// keeping the pinned pick-up / drop-off locations.
   void resetBooking() {
+    stopTrackingActiveRide();
+    _rideFinished = false;
     _selectedOption = null;
     _published = false;
     _publishError = null;

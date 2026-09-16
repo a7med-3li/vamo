@@ -49,11 +49,26 @@ class DriverProvider extends ChangeNotifier {
   StreamSubscription<RideStreamEvent>? _streamSub;
   Timer? _reconnectTimer;
 
+  // ── Active ride state ──────────────────────────────────────────────
+
+  RideRequest? _activeRide;
+  bool _isLoadingActiveRide = false;
+  String? _activeRideError;
+  bool _isStartingTrip = false;
+  bool _isCompletingTrip = false;
+
   List<RideRequest> get rideRequests => _rideRequests;
   bool get isLoadingRideRequests => _isLoadingRideRequests;
   String? get rideRequestsError => _rideRequestsError;
   String? get acceptError => _acceptError;
   bool get isStreaming => _streamSub != null;
+
+  RideRequest? get activeRide => _activeRide;
+  bool get hasActiveRide => _activeRide != null;
+  bool get isLoadingActiveRide => _isLoadingActiveRide;
+  String? get activeRideError => _activeRideError;
+  bool get isStartingTrip => _isStartingTrip;
+  bool get isCompletingTrip => _isCompletingTrip;
 
   bool isAccepting(String rideId) => _acceptingId == rideId;
 
@@ -123,6 +138,14 @@ class DriverProvider extends ChangeNotifier {
   Future<bool> acceptRideRequest(String rideRequestId) async {
     if (_acceptingId != null) return false;
 
+    RideRequest? acceptedRide;
+    for (final ride in _rideRequests) {
+      if (ride.id == rideRequestId) {
+        acceptedRide = ride;
+        break;
+      }
+    }
+
     _acceptingId = rideRequestId;
     _acceptError = null;
     notifyListeners();
@@ -130,6 +153,11 @@ class DriverProvider extends ChangeNotifier {
     try {
       await _driverRepo.acceptRideRequest(rideRequestId);
       _rideRequests.removeWhere((r) => r.id == rideRequestId);
+      // The ride is now matched to this driver → become the active trip.
+      if (acceptedRide != null) {
+        _activeRide = acceptedRide;
+        _activeRideError = null;
+      }
       return true;
     } on ApiException catch (e) {
       // Only drop the request when it was genuinely lost to another driver
@@ -157,12 +185,98 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Active ride ─────────────────────────────────────────────────────
+
+  /// Fetches the driver's current active ride from the backend. A 404/410
+  /// (no active ride) is treated as `null`.
+  Future<void> loadActiveRide() async {
+    if (_isLoadingActiveRide) return;
+    _isLoadingActiveRide = true;
+    _activeRideError = null;
+    notifyListeners();
+
+    try {
+      _activeRide = await _driverRepo.getActiveRide();
+    } on ApiException catch (e) {
+      if (e.statusCode == 404 || e.statusCode == 410) {
+        _activeRide = null;
+      } else {
+        _activeRideError = e.message;
+      }
+    } catch (_) {
+      _activeRideError = 'تعذر تحميل الرحلة الحالية.';
+    }
+
+    _isLoadingActiveRide = false;
+    notifyListeners();
+  }
+
+  /// Marks the current ride as started (driver reached the passenger).
+  /// Returns `true` when the backend accepted the transition.
+  Future<bool> startCurrentTrip() async {
+    final ride = _activeRide;
+    if (ride == null || _isStartingTrip) return false;
+
+    _isStartingTrip = true;
+    _activeRideError = null;
+    notifyListeners();
+
+    try {
+      await _driverRepo.startRide(ride.id);
+      _activeRide = ride.copyWith(status: 'STARTED');
+      return true;
+    } on ApiException catch (e) {
+      _activeRideError = e.message;
+      return false;
+    } catch (_) {
+      _activeRideError = 'تعذر بدء الرحلة.';
+      return false;
+    } finally {
+      _isStartingTrip = false;
+      notifyListeners();
+    }
+  }
+
+  /// Completes the current ride, clearing it from the driver's screen.
+  /// Returns `true` when the backend accepted the transition.
+  Future<bool> completeCurrentTrip() async {
+    final ride = _activeRide;
+    if (ride == null || _isCompletingTrip) return false;
+
+    _isCompletingTrip = true;
+    _activeRideError = null;
+    notifyListeners();
+
+    try {
+      await _driverRepo.completeRide(ride.id);
+      _activeRide = null;
+      return true;
+    } on ApiException catch (e) {
+      _activeRideError = e.message;
+      return false;
+    } catch (_) {
+      _activeRideError = 'تعذر إنهاء الرحلة.';
+      return false;
+    } finally {
+      _isCompletingTrip = false;
+      notifyListeners();
+    }
+  }
+
+  void clearActiveRideError() {
+    _activeRideError = null;
+    notifyListeners();
+  }
+
   // ── Live stream (SSE) ──────────────────────────────────────────────
 
   void _startStream() {
     if (_streamSub != null) return;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+
+    // Any in-progress trip should be restored when the stream (re)opens.
+    unawaited(loadActiveRide());
 
     _streamSub = _driverRepo.streamRideRequests().listen(
           _handleStreamEvent,

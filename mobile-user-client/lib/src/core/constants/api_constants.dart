@@ -50,6 +50,9 @@ class ApiConstants {
   static const String rideRequest = '/api/v3/ride/request';
   static const String rideRequestPublish = '/api/v3/ride/request/publish';
 
+  /// The passenger's current active ride (status MATCHED / STARTED), if any.
+  static const String rideActive = '/api/v3/ride/active';
+
   // ── Address / autocomplete / search (Book a Ride) ─────────────────
   static const String addressAutoComplete = '/api/v1/address/autoComplete';
   static const String addressSearch = '/api/v1/address/search';

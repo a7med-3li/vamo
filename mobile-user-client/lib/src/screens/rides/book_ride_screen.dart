@@ -552,7 +552,33 @@ class BookRideScreenState extends State<BookRideScreen> {
   }
 
   Widget _buildPublishSuccess(BuildContext context) {
-    final provider = context.read<RideBookProvider>();
+    final provider = context.watch<RideBookProvider>();
+
+    final (icon, title, subtitle) = switch (provider.rideFinished) {
+      true => (
+          Icons.check_circle_rounded,
+          'تمت الرحلة بنجاح',
+          'شكراً لاستخدامك "فامو". نتمنى لك رحلة سعيدة!'
+        ),
+      false => switch (provider.activeRide?.status.toUpperCase()) {
+        'STARTED' => (
+            Icons.local_taxi_rounded,
+            'بدأت الرحلة',
+            'وصل السائق وبدأ الرحلة. نتمنى لك رحلة سعيدة!'
+          ),
+        'MATCHED' => (
+            Icons.navigation_rounded,
+            'وجدنا لك سائقاً',
+            'تم قبول طلبك — السائق قادم إليك الآن.'
+          ),
+        _ => (
+            Icons.radar_rounded,
+            'جارِ العثور على سائق',
+            'تم إرسال طلبك إلى السائقين المتاحين، سيقابلك أقرب سائق قريباً.'
+          ),
+      },
+    };
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -566,12 +592,11 @@ class BookRideScreenState extends State<BookRideScreen> {
                 color: VamoTheme.accent.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_rounded,
-                  color: VamoTheme.accentDark, size: 44),
+              child: Icon(icon, color: VamoTheme.accentDark, size: 44),
             ),
             const SizedBox(height: 18),
             Text(
-              'تم إرسال طلب الرحلة',
+              title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
@@ -580,10 +605,36 @@ class BookRideScreenState extends State<BookRideScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'تم إخطار السائقين المتاحين، سيقابلك أقرب سائق قريباً.',
+              subtitle,
               textAlign: TextAlign.center,
               style: TextStyle(color: context.subtitleColor, height: 1.6),
             ),
+            if (!provider.rideFinished &&
+                provider.activeRide != null &&
+                !provider.activeRide!.isStarted) ...[
+              const SizedBox(height: 16),
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            ],
+            if (provider.activeRideError != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: VamoTheme.alert.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  provider.activeRideError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: VamoTheme.alert, height: 1.5),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             VamoButton(
               label: 'حجز رحلة أخرى',
