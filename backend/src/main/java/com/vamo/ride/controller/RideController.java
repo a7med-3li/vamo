@@ -32,14 +32,14 @@ public class RideController {
         return ResponseEntity.ok(new ApiResponse(true, "Ride completed"));
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse> cancelRide(
-            @AuthenticationPrincipal String userId,
-            @PathVariable UUID id) {
-        rideService.cancelRide(id, UUID.fromString(userId));
-        return ResponseEntity.ok(new ApiResponse(true, "Ride cancelled"));
-    }
+//    @PreAuthorize("isAuthenticated()")
+//    @PostMapping("/{id}/cancel")
+//    public ResponseEntity<ApiResponse> cancelRide(
+//            @AuthenticationPrincipal String userId,
+//            @PathVariable UUID id) {
+//        rideService.cancelRide(id, UUID.fromString(userId));
+//        return ResponseEntity.ok(new ApiResponse(true, "Ride cancelled"));
+//    }
 
     @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
     @GetMapping("/history")
@@ -66,15 +66,25 @@ public class RideController {
     public List<RoutingResponse> request(@RequestBody RideRequestDto rideRequestDto) {
         return routingService.getRideOptions(rideRequestDto);
     }
+    
+    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
     @PostMapping("/request/publish")
-    public ResponseEntity<Void> publishRideRequest(@CurrentPassengerId UUID passengerId, @RequestBody RideRequestDto rideRequestDto) {
-        rideService.publishRideRequest(passengerId, rideRequestDto);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<PublishedRideDTO> publishRideRequest(@CurrentPassengerId UUID passengerId, @RequestBody RideRequestDto rideRequestDto) {
+        PublishedRideDTO publishedRide = rideService.publishRideRequest(passengerId, rideRequestDto);
+        return ResponseEntity.ok(publishedRide);
     }
     
+    @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @PostMapping("/request/{id}/accept")
     public ResponseEntity<Void> acceptRideRequest(@PathVariable UUID id, @CurrentDriverId UUID driverId) {
         rideService.acceptRide(id, driverId);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PreAuthorize("hasAnyRole('PASSENGER', 'BOTH')")
+    @PostMapping("/request/{id}/cancel")
+    public ResponseEntity<Void> cancelRideRequest(@PathVariable UUID id, @CurrentPassengerId UUID passengerId) {
+        rideService.cancelRide(id, passengerId);
         return ResponseEntity.ok().build();
     }
 }

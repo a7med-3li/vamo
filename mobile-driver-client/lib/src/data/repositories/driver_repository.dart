@@ -79,6 +79,12 @@ class DriverRepository {
   ///  - `event: ride_taken`    → `data: {"rideId":"..."}`
   ///    sent when a ride request is accepted by a driver, so every other
   ///    connected driver can remove it from their offered list.
+  ///  - `event: ride_Not_available` → `data: {"rideId":"..."}`
+  ///    broadcast when a request is taken or cancelled, so drivers can remove
+  ///    it from their offered list.
+  ///  - `event: ride_cancelled` → `data: "<rideId>"`
+  ///    sent to the matched driver when the passenger cancels, so the active
+  ///    ride can be cleared.
   Stream<RideStreamEvent> streamRideRequests() async* {
     final http.StreamedResponse response;
     try {
@@ -128,7 +134,9 @@ class DriverRepository {
     } catch (_) {
       return null;
     }
-    if (decoded is! Map<String, dynamic>) return null;
+    // `ride_cancelled` can arrive as a raw JSON string (the ride id), all
+    // other events arrive as JSON objects.
+    if (decoded is! Map<String, dynamic> && decoded is! String) return null;
 
     switch (name) {
       case 'rides-snapshot':
@@ -145,12 +153,32 @@ class DriverRepository {
         if (ride.id.isEmpty) return null;
         return RideStreamEvent(RideStreamEventType.newRide, ride: ride);
 
+      case 'ride_not_available':
       case 'ride_taken':
       case 'ride-taken':
         final rideId = decoded['rideId']?.toString();
         if (rideId == null || rideId.isEmpty) return null;
         return RideStreamEvent(
           RideStreamEventType.rideTaken,
+          rideId: rideId,
+        );
+
+      case 'ride_cancelled':
+      case 'ride-cancelled':
+        // The matched driver receives the raw ride id (a JSON string) as the
+        // payload, not a JSON object.
+        final Object? rawRideId;
+        if (decoded is String) {
+          rawRideId = decoded;
+        } else if (decoded is Map<String, dynamic>) {
+          rawRideId = decoded['rideId'];
+        } else {
+          return null;
+        }
+        final rideId = rawRideId?.toString();
+        if (rideId == null || rideId.isEmpty) return null;
+        return RideStreamEvent(
+          RideStreamEventType.rideCancelled,
           rideId: rideId,
         );
 

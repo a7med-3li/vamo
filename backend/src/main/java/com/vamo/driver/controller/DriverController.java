@@ -1,5 +1,7 @@
 package com.vamo.driver.controller;
 
+import com.vamo.common.annotation.CurrentDriverId;
+import com.vamo.common.entity.Location;
 import com.vamo.driver.dto.ActivateCorridorRequest;
 import com.vamo.driver.dto.DriverProfileResponse;
 import com.vamo.driver.dto.TransactionResponse;
@@ -30,7 +32,16 @@ public class DriverController {
     public ResponseEntity<DriverProfileResponse> getProfile(@AuthenticationPrincipal String userId) {
         return ResponseEntity.ok(driverService.getProfile(UUID.fromString(userId)));
     }
-
+    
+    @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
+    @PostMapping("/ride/arrived")
+    public ResponseEntity<?> arrivedAtRide(
+            @CurrentDriverId UUID driverId,
+            @Valid @RequestBody Location pickUpLocation) {
+        driverService.arrivedAtRide(driverId, pickUpLocation);
+        return ResponseEntity.ok().build();
+    }
+    
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @PostMapping("/activate-corridor")
     public ResponseEntity<?> activateCorridor(

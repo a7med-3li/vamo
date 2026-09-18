@@ -7,7 +7,7 @@ class ApiConstants {
 
   // ── Base URL ────────────────────────────────────────────────────────
   /// Development server (direct IP).
-  static const String _devBaseUrl = 'http://48.199.17.132:8080';
+  //static const String _devBaseUrl = 'http://:8080';
 
   /// Production domain (when DNS is configured).
   // ignore: unused_field

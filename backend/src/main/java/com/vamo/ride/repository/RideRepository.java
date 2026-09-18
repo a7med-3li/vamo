@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface RideRepository extends JpaRepository<Ride, UUID> {
@@ -18,6 +19,8 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
             "r.acceptedAt = :acceptedAt " +
             "WHERE r.id = :rideId AND r.status = 'REQUESTED'")
     int acceptRide(@Param("rideId") UUID rideId, @Param("driverId") UUID driverId, @Param("acceptedAt") Instant acceptedAt);
+    
+    Optional<Ride> findByIdAndPassengerId(UUID rideId, UUID passengerId);
     
     List<Ride> findByPassengerIdOrderByRequestedAtDesc(UUID passengerId);
 

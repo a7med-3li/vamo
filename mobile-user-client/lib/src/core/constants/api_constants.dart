@@ -7,7 +7,7 @@ class ApiConstants {
 
   // ── Base URL ────────────────────────────────────────────────────────
   /// Development server (direct IP).
-  static const String _devBaseUrl = 'http://13.51.40.28:8080';
+  // static const String _devBaseUrl = 'http://:8080';
 
   /// Production domain (when DNS is configured).
   // ignore: unused_field
@@ -52,6 +52,10 @@ class ApiConstants {
 
   /// The passenger's current active ride (status MATCHED / STARTED), if any.
   static const String rideActive = '/api/v3/ride/active';
+
+  /// Cancels an active ride request (status REQUESTED / MATCHED).
+  static String cancelRideRequest(String id) =>
+      '/api/v3/ride/request/$id/cancel';
 
   // ── Address / autocomplete / search (Book a Ride) ─────────────────
   static const String addressAutoComplete = '/api/v1/address/autoComplete';

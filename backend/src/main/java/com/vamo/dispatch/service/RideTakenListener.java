@@ -1,7 +1,7 @@
 package com.vamo.dispatch.service;
 
 import com.vamo.common.events.RideTakenEvent;
-import com.vamo.dispatch.dto.TakenRide;
+import com.vamo.dispatch.dto.NotAvailableRide;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -13,14 +13,14 @@ public class RideTakenListener {
 	private final DriverConnectionManager driverConnectionManager;
 	
 	@EventListener
-	public void handleRideRequested(RideTakenEvent event) {
+	public void handleRideNotAvailable(RideTakenEvent event) {
 		
-		TakenRide takenRide = new TakenRide(
+		NotAvailableRide takenRide = new NotAvailableRide(
 				event.rideId()
 		);
 		for (String targetDriverId : driverConnectionManager.activeEmitters.keySet()){
 			driverConnectionManager
-					.pushTakenRideToDriver(targetDriverId, takenRide);
+					.pushRideNotAvailableToDriver(targetDriverId, takenRide);
 		}
 	}
 }

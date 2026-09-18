@@ -554,28 +554,35 @@ class BookRideScreenState extends State<BookRideScreen> {
   Widget _buildPublishSuccess(BuildContext context) {
     final provider = context.watch<RideBookProvider>();
 
-    final (icon, title, subtitle) = switch (provider.rideFinished) {
+    final (icon, title, subtitle) = switch (provider.rideCancelled) {
       true => (
-          Icons.check_circle_rounded,
-          'تمت الرحلة بنجاح',
-          'شكراً لاستخدامك "فامو". نتمنى لك رحلة سعيدة!'
+          Icons.cancel_rounded,
+          'تم إلغاء الطلب',
+          'لقد تم إلغاء طلب الرحلة بنجاح.'
         ),
-      false => switch (provider.activeRide?.status.toUpperCase()) {
-        'STARTED' => (
-            Icons.local_taxi_rounded,
-            'بدأت الرحلة',
-            'وصل السائق وبدأ الرحلة. نتمنى لك رحلة سعيدة!'
+      false => switch (provider.rideFinished) {
+        true => (
+            Icons.check_circle_rounded,
+            'تمت الرحلة بنجاح',
+            'شكراً لاستخدامك "فامو". نتمنى لك رحلة سعيدة!'
           ),
-        'MATCHED' => (
-            Icons.navigation_rounded,
-            'وجدنا لك سائقاً',
-            'تم قبول طلبك — السائق قادم إليك الآن.'
-          ),
-        _ => (
-            Icons.radar_rounded,
-            'جارِ العثور على سائق',
-            'تم إرسال طلبك إلى السائقين المتاحين، سيقابلك أقرب سائق قريباً.'
-          ),
+        false => switch (provider.activeRide?.status.toUpperCase()) {
+          'STARTED' => (
+              Icons.local_taxi_rounded,
+              'بدأت الرحلة',
+              'وصل السائق وبدأ الرحلة. نتمنى لك رحلة سعيدة!'
+            ),
+          'MATCHED' => (
+              Icons.navigation_rounded,
+              'وجدنا لك سائقاً',
+              'تم قبول طلبك — السائق قادم إليك الآن.'
+            ),
+          _ => (
+              Icons.radar_rounded,
+              'جارِ العثور على سائق',
+              'تم إرسال طلبك إلى السائقين المتاحين، سيقابلك أقرب سائق قريباً.'
+            ),
+        },
       },
     };
 
@@ -610,6 +617,7 @@ class BookRideScreenState extends State<BookRideScreen> {
               style: TextStyle(color: context.subtitleColor, height: 1.6),
             ),
             if (!provider.rideFinished &&
+                !provider.rideCancelled &&
                 provider.activeRide != null &&
                 !provider.activeRide!.isStarted) ...[
               const SizedBox(height: 16),
@@ -635,13 +643,41 @@ class BookRideScreenState extends State<BookRideScreen> {
                 ),
               ),
             ],
+            if (provider.cancelError != null &&
+                !provider.rideCancelled) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: VamoTheme.alert.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  provider.cancelError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: VamoTheme.alert, height: 1.5),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
-            VamoButton(
-              label: 'حجز رحلة أخرى',
-              icon: Icons.replay_rounded,
-              isOutlined: true,
-              onPressed: provider.resetBooking,
-            ),
+            if (provider.rideCancelled || provider.rideFinished)
+              VamoButton(
+                label: 'حجز رحلة أخرى',
+                icon: Icons.replay_rounded,
+                isOutlined: true,
+                onPressed: provider.resetBooking,
+              )
+            else if (provider.activeRide != null &&
+                !provider.activeRide!.isStarted)
+              VamoButton(
+                label: 'إلغاء الطلب',
+                icon: Icons.cancel_rounded,
+                isOutlined: true,
+                color: VamoTheme.alert,
+                isLoading: provider.isCancelling,
+                onPressed: () => _confirmCancelRide(context),
+              ),
           ],
         ),
       ),
@@ -756,6 +792,39 @@ String _requestLabel(RideBookProvider provider, bool canRequest) {
 
   void _onConfirmBooking() {
     context.read<RideBookProvider>().requestRide();
+  }
+
+  Future<void> _confirmCancelRide(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: ctx.cardColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('إلغاء الطلب',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+          content: const Text('هل أنت متأكد أنك تريد إلغاء طلب الرحلة؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('تراجع',
+                  style: TextStyle(color: ctx.subtitleColor)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style:
+                  FilledButton.styleFrom(backgroundColor: VamoTheme.alert),
+              child: const Text('تأكيد الإلغاء'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<RideBookProvider>().cancelActiveRide();
+    }
   }
 }
 

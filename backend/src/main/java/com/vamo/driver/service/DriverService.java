@@ -1,5 +1,6 @@
 package com.vamo.driver.service;
 
+import com.vamo.common.entity.Location;
 import com.vamo.common.enums.ApprovalStatus;
 import com.vamo.common.exception.NotFoundException;
 import com.vamo.driver.dto.ActivateCorridorRequest;
@@ -20,6 +21,9 @@ public class DriverService {
 
     private final DriverProfileRepository driverProfileRepository;
 
+    public void arrivedAtRide(UUID driverId, Location pickUpLocation) {
+    
+    }
     public DriverProfileResponse getProfile(UUID userId) {
         DriverProfile profile = driverProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Driver profile not found"));

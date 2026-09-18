@@ -121,6 +121,11 @@ class RideBookProvider extends ChangeNotifier {
   bool _rideFinished = false;
   Timer? _activePollTimer;
 
+  // ── Ride cancellation (post-publish) ────────────────────────────────
+  bool _isCancelling = false;
+  String? _cancelError;
+  bool _rideCancelled = false;
+
   bool get isLocating => _isLocating;
   bool get isRequestingRide => _isRequestingRide;
   bool get hasRideOptions => _rideOptions != null && _rideOptions!.isNotEmpty;
@@ -133,6 +138,11 @@ class RideBookProvider extends ChangeNotifier {
   PassengerActiveRide? get activeRide => _activeRide;
   bool get isCheckingActiveRide => _isCheckingActiveRide;
   String? get activeRideError => _activeRideError;
+  bool get isCancelling => _isCancelling;
+  String? get cancelError => _cancelError;
+
+  /// Whether the published ride was cancelled by the passenger.
+  bool get rideCancelled => _rideCancelled;
 
   /// Whether the published ride has completed (was active, now gone).
   bool get rideFinished => _rideFinished;
@@ -411,6 +421,33 @@ class RideBookProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cancels the currently matched ride on the backend, then stops tracking.
+  /// Returns `true` when the backend accepted the cancellation.
+  Future<bool> cancelActiveRide() async {
+    final ride = _activeRide;
+    if (ride == null || _isCancelling) return false;
+
+    _isCancelling = true;
+    _cancelError = null;
+    notifyListeners();
+
+    try {
+      await _rideRepo.cancelRideRequest(ride.id);
+      _rideCancelled = true;
+      stopTrackingActiveRide();
+      return true;
+    } on ApiException catch (e) {
+      _cancelError = e.message;
+    } catch (e) {
+      debugPrint('⚠️ [RideBookProvider] cancelActiveRide error: $e');
+      _cancelError = 'تعذر إلغاء الطلب. حاول مرة أخرى.';
+    } finally {
+      _isCancelling = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
   /// Starts polling for the passenger's active ride every few seconds.
   /// Keeps going until the ride completes or disappears.
   void _startActivePolling() {
@@ -482,6 +519,8 @@ class RideBookProvider extends ChangeNotifier {
   void resetBooking() {
     stopTrackingActiveRide();
     _rideFinished = false;
+    _rideCancelled = false;
+    _cancelError = null;
     _selectedOption = null;
     _published = false;
     _publishError = null;
@@ -499,9 +538,11 @@ class RideBookProvider extends ChangeNotifier {
         _rideRequestError == null &&
         _selectedOption == null &&
         _publishError == null &&
+        _cancelError == null &&
         !_isRequestingRide &&
         !_isPublishing &&
-        !_published) {
+        !_published &&
+        !_rideCancelled) {
       return;
     }
     _rideOptions = null;
@@ -511,6 +552,8 @@ class RideBookProvider extends ChangeNotifier {
     _publishError = null;
     _isPublishing = false;
     _published = false;
+    _rideCancelled = false;
+    _cancelError = null;
   }
 }
 

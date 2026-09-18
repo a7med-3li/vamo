@@ -88,4 +88,9 @@ class RideRepository {
     }
     return null;
   }
+
+  /// Cancels the passenger's active ride request.
+  Future<void> cancelRideRequest(String rideId) async {
+    await _api.post(ApiConstants.cancelRideRequest(rideId));
+  }
 }

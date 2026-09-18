@@ -333,6 +333,17 @@ class DriverProvider extends ChangeNotifier {
           _rideRequests.removeWhere((r) => r.id == rideId);
         }
         break;
+
+      case RideStreamEventType.rideCancelled:
+        final rideId = event.rideId;
+        if (rideId != null) {
+          _rideRequests.removeWhere((r) => r.id == rideId);
+          if (_activeRide?.id == rideId) {
+            _activeRide = null;
+            _activeRideError = null;
+          }
+        }
+        break;
     }
     notifyListeners();
   }

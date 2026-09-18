@@ -6,6 +6,8 @@ import com.vamo.common.events.RideTakenEvent;
 import com.vamo.common.exception.BadRequestException;
 import com.vamo.common.exception.NotFoundException;
 import com.vamo.common.exception.RideAlreadyTakenException;
+import com.vamo.dispatch.service.DriverConnectionManager;
+import com.vamo.ride.dto.PublishedRideDTO;
 import com.vamo.ride.dto.RideHistoryItem;
 import com.vamo.ride.dto.RideRequestDto;
 import com.vamo.ride.entity.Ride;
@@ -30,9 +32,10 @@ public class RideService {
     private final UserService userService;
     private final DriverWalletService driverWalletService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DriverConnectionManager driverConnectionManager;
     
     @Transactional
-    public void publishRideRequest(UUID passengerId, RideRequestDto request) {
+    public PublishedRideDTO publishRideRequest(UUID passengerId, RideRequestDto request) {
         Ride ride = Ride.builder()
                 .passengerId(passengerId)
                 .pickUp(request.pickUp())
@@ -45,10 +48,18 @@ public class RideService {
                 .requestedAt(Instant.now())
                 .build();
         
-        rideRepository.save(ride);
+        Ride publishedRide = rideRepository.save(ride);
         
         eventPublisher.publishEvent(new RideRequestedEvent(ride));
-	    log.info("Publishing ride request for passenger: {}, rideId: {}", passengerId, ride.getId());
+	    return new PublishedRideDTO(
+                publishedRide.getId(),
+                publishedRide.getPickUp(),
+                publishedRide.getDropOff(),
+                publishedRide.getEstimatedFare(),
+                publishedRide.getDistanceInKm(),
+                publishedRide.getVehicleType(),
+                publishedRide.getDuration()
+        );
     }
     
     @Transactional
@@ -58,12 +69,12 @@ public class RideService {
             throw new RideAlreadyTakenException("Ride no longer available");
         }
         publishRideTakenEvent(rideId);
-        // proceed: notify rider, notify other drivers ride is gone, etc.
     }
     
     public void publishRideTakenEvent(UUID rideId){
         eventPublisher.publishEvent(new RideTakenEvent(rideId));
     }
+    
     @Transactional
     public void confirmBoarding(UUID driverId, UUID rideId, String pin) {
         Ride ride = rideRepository.findById(rideId)
@@ -101,21 +112,19 @@ public class RideService {
         rideRepository.save(ride);
     }
 
-    //todo: refactor this
-    @Transactional
+    //note: needs to be atomic, like the acceptRide method.
     public void cancelRide(UUID rideId, UUID userId) {
-        Ride ride = rideRepository.findById(rideId)
+        Ride ride = rideRepository.findByIdAndPassengerId(rideId, userId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
 
-        boolean isOwner = ride.getPassengerId().equals(userId);
-        boolean isDriver = userId.equals(ride.getDriverId());
-        if (!isOwner && !isDriver) {
-            throw new BadRequestException("You can only cancel your own rides");
+        if (ride.getStatus() == RideStatus.MATCHED) {
+            driverConnectionManager.pushCancelledRideToDriver(ride.getDriverId(), ride.getId());
         }
-        if (ride.getStatus() != RideStatus.BOOKED) {
-            throw new BadRequestException("Can only cancel booked rides");
+        if(ride.getStatus() == RideStatus.REQUESTED || ride.getStatus() == RideStatus.MATCHED) {
+            eventPublisher.publishEvent(new RideTakenEvent(rideId));
+        } else {
+            throw new BadRequestException("Ride cannot be cancelled at this stage");
         }
-
         ride.setStatus(RideStatus.CANCELLED);
         rideRepository.save(ride);
     }
@@ -133,7 +142,8 @@ public class RideService {
     //note: why does this exist? we should be able to get the
     // driver history from the passenger history,
     // since the passenger history contains all rides,
-    // including those with drivers. maybe this is for a driver dashboard?
+    // including those with drivers.
+    // maybe this is for a driver dashboard?
     public List<RideHistoryItem> getDriverHistory(UUID driverId) {
         return rideRepository.findByDriverIdOrderByDepartureTimeAsc(driverId)
                 .stream()
