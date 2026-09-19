@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RideTakenListener {
 	
-	private final DriverConnectionManager driverConnectionManager;
+	private final ConnectionManager connectionManager;
 	
 	@EventListener
 	public void handleRideNotAvailable(RideTakenEvent event) {
@@ -18,8 +18,8 @@ public class RideTakenListener {
 		NotAvailableRide takenRide = new NotAvailableRide(
 				event.rideId()
 		);
-		for (String targetDriverId : driverConnectionManager.activeEmitters.keySet()){
-			driverConnectionManager
+		for (String targetDriverId : connectionManager.activeEmitters.keySet()){
+			connectionManager
 					.pushRideNotAvailableToDriver(targetDriverId, takenRide);
 		}
 	}

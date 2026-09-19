@@ -2,6 +2,7 @@ package com.vamo.driver.service;
 
 import com.vamo.common.entity.Location;
 import com.vamo.common.enums.ApprovalStatus;
+import com.vamo.common.events.DriverArrivedEvent;
 import com.vamo.common.exception.NotFoundException;
 import com.vamo.driver.dto.ActivateCorridorRequest;
 import com.vamo.driver.dto.DriverProfileResponse;
@@ -9,6 +10,8 @@ import com.vamo.driver.entity.DriverProfile;
 import com.vamo.driver.repository.DriverProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
@@ -20,9 +23,20 @@ import java.util.UUID;
 public class DriverService {
 
     private final DriverProfileRepository driverProfileRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public void arrivedAtRide(UUID driverId, Location pickUpLocation) {
-    
+    public void arrivedAtRide(UUID driverId, Location pickUpLocation, UUID rideId) {
+        DriverProfile profile = driverProfileRepository.findByUserId(driverId)
+                .orElseThrow(() -> new NotFoundException("Driver profile not found"));
+        
+        DriverArrivedEvent event = new DriverArrivedEvent(
+                profile.getUser().getPhoneNumber(),
+                profile.getLicenseNumber(),
+                pickUpLocation,
+                rideId
+        );
+        
+        applicationEventPublisher.publishEvent(event);
     }
     public DriverProfileResponse getProfile(UUID userId) {
         DriverProfile profile = driverProfileRepository.findByUserId(userId)
@@ -36,6 +50,11 @@ public class DriverService {
                 profile.getActiveCorridor() != null ? profile.getActiveCorridor().getId() : null,
                 profile.getApprovalStatus()
         );
+    }
+    
+    public DriverProfile getDriverProfile(UUID userId) {
+        return driverProfileRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Driver profile not found"));
     }
 
     public void activateCorridor(UUID userId, ActivateCorridorRequest request) {

@@ -1,18 +1,20 @@
 package com.vamo.ride.service;
 
 import com.vamo.common.enums.RideStatus;
+import com.vamo.common.events.RideAcceptedEvent;
 import com.vamo.common.events.RideRequestedEvent;
 import com.vamo.common.events.RideTakenEvent;
 import com.vamo.common.exception.BadRequestException;
 import com.vamo.common.exception.NotFoundException;
 import com.vamo.common.exception.RideAlreadyTakenException;
-import com.vamo.dispatch.service.DriverConnectionManager;
+import com.vamo.dispatch.service.ConnectionManager;
+import com.vamo.driver.entity.DriverProfile;
+import com.vamo.driver.service.DriverService;
 import com.vamo.ride.dto.PublishedRideDTO;
 import com.vamo.ride.dto.RideHistoryItem;
 import com.vamo.ride.dto.RideRequestDto;
 import com.vamo.ride.entity.Ride;
 import com.vamo.ride.repository.RideRepository;
-import com.vamo.user.service.UserService;
 import com.vamo.driver.service.DriverWalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,10 +31,10 @@ import java.util.UUID;
 public class RideService {
 
     private final RideRepository rideRepository;
-    private final UserService userService;
+    private final DriverService driverService;
     private final DriverWalletService driverWalletService;
     private final ApplicationEventPublisher eventPublisher;
-    private final DriverConnectionManager driverConnectionManager;
+    private final ConnectionManager connectionManager;
     
     @Transactional
     public PublishedRideDTO publishRideRequest(UUID passengerId, RideRequestDto request) {
@@ -69,10 +71,32 @@ public class RideService {
             throw new RideAlreadyTakenException("Ride no longer available");
         }
         publishRideTakenEvent(rideId);
+        publishRideAcceptedEvent(rideId);
     }
     
     public void publishRideTakenEvent(UUID rideId){
         eventPublisher.publishEvent(new RideTakenEvent(rideId));
+    }
+    
+    public void publishRideAcceptedEvent(UUID rideId){
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new NotFoundException("Ride not found"));
+        DriverProfile driverProfile = driverService.getDriverProfile(ride.getDriverId());
+        RideAcceptedEvent event = new RideAcceptedEvent(
+                ride.getId(),
+                driverProfile.getUser().getFirstName(),
+                driverProfile.getUser().getPhoneNumber(),
+                driverProfile.getLicenseNumber(),
+                ride.getPassengerId(),
+                ride.getVehicleType(),
+                ride.getPickUp(),
+                ride.getDropOff(),
+                ride.getEstimatedFare(),
+                ride.getDistanceInKm(),
+                ride.getDuration(),
+                ride.getStatus()
+        );
+        eventPublisher.publishEvent(event);
     }
     
     @Transactional
@@ -118,7 +142,7 @@ public class RideService {
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
 
         if (ride.getStatus() == RideStatus.MATCHED) {
-            driverConnectionManager.pushCancelledRideToDriver(ride.getDriverId(), ride.getId());
+            connectionManager.pushCancelledRideToDriver(ride.getDriverId(), ride.getId());
         }
         if(ride.getStatus() == RideStatus.REQUESTED || ride.getStatus() == RideStatus.MATCHED) {
             eventPublisher.publishEvent(new RideTakenEvent(rideId));
@@ -163,5 +187,10 @@ public class RideService {
             ride.setStatus(RideStatus.NO_SHOW);
             rideRepository.save(ride);
         }
+    }
+    
+    public Ride getRideById(UUID rideId) {
+        return rideRepository.findById(rideId)
+                .orElseThrow(() -> new NotFoundException("Ride not found"));
     }
 }

@@ -55,4 +55,9 @@ class ApiConstants {
 
   /// Driver completes the current ride.
   static String completeRide(String rideId) => '/api/v3/ride/$rideId/complete';
+
+  /// Driver reports arrival at the pickup point; the backend broadcasts the
+  /// `driver_arrived` live event to the passenger.
+  static String driverArrived(String rideId) =>
+      '/api/v1/drivers/ride/$rideId/arrived';
 }

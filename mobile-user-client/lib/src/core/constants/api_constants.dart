@@ -53,6 +53,10 @@ class ApiConstants {
   /// The passenger's current active ride (status MATCHED / STARTED), if any.
   static const String rideActive = '/api/v3/ride/active';
 
+  /// Server-sent events stream for the passenger's live ride updates
+  /// (`ride_accepted` when a driver accepts, `driver_arrived` on arrival).
+  static const String passengerStream = '/api/v1/dispatch/passengers/stream';
+
   /// Cancels an active ride request (status REQUESTED / MATCHED).
   static String cancelRideRequest(String id) =>
       '/api/v3/ride/request/$id/cancel';

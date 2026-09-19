@@ -34,11 +34,12 @@ public class DriverController {
     }
     
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
-    @PostMapping("/ride/arrived")
+    @PostMapping("/ride/{id}/arrived")
     public ResponseEntity<?> arrivedAtRide(
             @CurrentDriverId UUID driverId,
-            @Valid @RequestBody Location pickUpLocation) {
-        driverService.arrivedAtRide(driverId, pickUpLocation);
+            @Valid @RequestBody Location pickUpLocation,
+            @PathVariable("id") UUID rideId) {
+        driverService.arrivedAtRide(driverId, pickUpLocation, rideId);
         return ResponseEntity.ok().build();
     }
     

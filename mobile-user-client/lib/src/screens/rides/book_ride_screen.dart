@@ -616,6 +616,84 @@ class BookRideScreenState extends State<BookRideScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: context.subtitleColor, height: 1.6),
             ),
+            if (provider.activeRide != null &&
+                (provider.activeRide!.isMatched ||
+                    provider.activeRide!.isStarted)) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: context.cardColor,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: context.cardBorderColor),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: VamoTheme.accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.airport_shuttle_rounded,
+                        color: VamoTheme.accent,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            provider.activeRide!.driverNameLabel,
+                            style:
+                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            provider.activeRide!.vehicleNumberLabel,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: context.subtitleColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (provider.activeRide?.driverArrived == true) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: VamoTheme.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.emoji_transportation_rounded,
+                        color: VamoTheme.accent, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'وصل السائق إلى نقطة الالتقاء',
+                      style: const TextStyle(
+                        color: VamoTheme.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (!provider.rideFinished &&
                 !provider.rideCancelled &&
                 provider.activeRide != null &&

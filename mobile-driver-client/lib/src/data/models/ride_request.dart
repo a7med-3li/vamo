@@ -33,11 +33,20 @@ class RideRequest {
   final String vehicleType;
   final String status;
 
+  /// Passenger display name, falling back to a neutral placeholder when the
+  /// backend does not (yet) include it in the dispatched ride payload.
+  String get passengerNameLabel {
+    final name = passengerName.trim();
+    return name.isEmpty ? 'عميل Vamo' : name;
+  }
+
   /// Human-friendly label for the pickup location (from coordinates).
-  String get pickupLabel => RideRequest._coord(pickUpLat, pickUpLng);
+  /// Falls back to a placeholder when the backend did not send coordinates.
+  String get pickupLabel => RideRequest._lacka(pickUpLat, pickUpLng);
 
   /// Human-friendly label for the drop-off location (from coordinates).
-  String get destinationLabel => RideRequest._coord(dropOffLat, dropOffLng);
+  /// Falls back to a placeholder when the backend did not send coordinates.
+  String get destinationLabel => RideRequest._lacka(dropOffLat, dropOffLng);
 
   int get durationMinutes => (durationSeconds / 60).round();
 
@@ -80,6 +89,11 @@ class RideRequest {
 
   static String _coord(double lat, double lng) =>
       '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+
+  /// Renders a coordinate pair, or a placeholder when the coordinates are
+  /// absent (both zero) — the backend does not always send them yet.
+  static String _lacka(double lat, double lng) =>
+      (lat == 0 && lng == 0) ? 'غير متوفر' : _coord(lat, lng);
 
   factory RideRequest.fromJson(Map<String, dynamic> json) {
     double numVal(Object? v) => (v as num?)?.toDouble() ?? 0;

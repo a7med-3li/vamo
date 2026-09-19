@@ -47,6 +47,22 @@ class ApiClient {
     });
   }
 
+  /// Opens a long-lived GET connection and returns the raw response stream.
+  ///
+  /// Used for server-sent events (SSE) such as the passenger ride-updates
+  /// stream. No timeout is applied — the caller owns the returned stream
+  /// and must handle errors/cancellation.
+  Future<http.StreamedResponse> streamGet(String path) async {
+    final uri = _buildUri(path);
+    final request = http.Request('GET', uri);
+    final token = TokenStorage.getToken();
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.headers['Accept'] = 'text/event-stream';
+    return _client.send(request);
+  }
+
   /// Sends a POST request with a JSON [body].
   Future<dynamic> post(
     String path, {

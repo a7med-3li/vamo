@@ -64,6 +64,24 @@ class DriverRepository {
     await _api.post(ApiConstants.startRide(rideId));
   }
 
+  /// Reports the driver's arrival at the pickup point.
+  ///
+  /// Hits `POST /api/v1/drivers/ride/{id}/arrived`, which makes the backend
+  /// broadcast the `driver_arrived` live event to the passenger.
+  Future<void> reportArrived(
+    String rideId, {
+    required double pickupLatitude,
+    required double pickupLongitude,
+  }) async {
+    await _api.post(
+      ApiConstants.driverArrived(rideId),
+      body: {
+        'latitude': pickupLatitude,
+        'longitude': pickupLongitude,
+      },
+    );
+  }
+
   /// Completes the current ride.
   Future<void> completeRide(String rideId) async {
     await _api.post(ApiConstants.completeRide(rideId));

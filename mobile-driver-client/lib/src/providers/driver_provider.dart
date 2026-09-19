@@ -211,8 +211,13 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Marks the current ride as started (driver reached the passenger).
-  /// Returns `true` when the backend accepted the transition.
+  /// Starts the current ride, notifying the passenger that the driver arrived.
+  /// Returns `true` when the backend accepted the action.
+  ///
+  /// The MVP wires the "start trip" action to the driver-arrival report
+  /// (`POST /api/v1/drivers/ride/{id}/arrived`): the backend broadcasts the
+  /// live `driver_arrived` event to the passenger, and the ride is marked
+  /// started locally. The dedicated `/start` endpoint is planned for later.
   Future<bool> startCurrentTrip() async {
     final ride = _activeRide;
     if (ride == null || _isStartingTrip) return false;
@@ -222,11 +227,17 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _driverRepo.startRide(ride.id);
+      await _driverRepo.reportArrived(
+        ride.id,
+        pickupLatitude: ride.pickUpLat,
+        pickupLongitude: ride.pickUpLng,
+      );
       _activeRide = ride.copyWith(status: 'STARTED');
       return true;
     } on ApiException catch (e) {
-      _activeRideError = e.message;
+      _activeRideError = _isPendingFeature(e)
+          ? 'بدء الرحلة غير متاح حالياً.'
+          : e.message;
       return false;
     } catch (_) {
       _activeRideError = 'تعذر بدء الرحلة.';
@@ -252,7 +263,9 @@ class DriverProvider extends ChangeNotifier {
       _activeRide = null;
       return true;
     } on ApiException catch (e) {
-      _activeRideError = e.message;
+      _activeRideError = _isPendingFeature(e)
+          ? 'إنهاء الرحلة غير متاح حالياً.'
+          : e.message;
       return false;
     } catch (_) {
       _activeRideError = 'تعذر إنهاء الرحلة.';
@@ -262,6 +275,12 @@ class DriverProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Whether the failure is caused by a backend endpoint that has not been
+  /// implemented yet (404/405/501). Those features are planned for later, so
+  /// a neutral placeholder is shown instead of a confusing server error.
+  bool _isPendingFeature(ApiException e) =>
+      e.statusCode == 404 || e.statusCode == 405 || e.statusCode == 501;
 
   void clearActiveRideError() {
     _activeRideError = null;

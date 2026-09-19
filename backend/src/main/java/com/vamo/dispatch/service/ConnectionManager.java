@@ -4,14 +4,17 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import com.vamo.common.events.DriverArrivedEvent;
+import com.vamo.dispatch.dto.AcceptedRide;
 import com.vamo.dispatch.dto.DispatchedRide;
+import com.vamo.dispatch.dto.DriverArrived;
 import com.vamo.dispatch.dto.NotAvailableRide;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
-public class DriverConnectionManager {
+public class ConnectionManager {
 	
 	public final Map<String, SseEmitter> activeEmitters = new ConcurrentHashMap<>();
 	
@@ -28,21 +31,6 @@ public class DriverConnectionManager {
 			activeEmitters.remove(driverId);
 		});
 		emitter.onError((e) -> activeEmitters.remove(driverId));
-		
-		return emitter;
-	}
-	
-	public SseEmitter createPassengerConnection(String passengerId) {
-		SseEmitter emitter = new SseEmitter(900000L);
-		
-		activePassengersEmitters.put(passengerId, emitter);
-		
-		emitter.onCompletion(() -> activePassengersEmitters.remove(passengerId));
-		emitter.onTimeout(() -> {
-			emitter.complete();
-			activePassengersEmitters.remove(passengerId);
-		});
-		emitter.onError((e) -> activePassengersEmitters.remove(passengerId));
 		
 		return emitter;
 	}
@@ -95,4 +83,48 @@ public class DriverConnectionManager {
 		}
 	}
 	
+	public SseEmitter createPassengerConnection(String passengerId) {
+		SseEmitter emitter = new SseEmitter(900000L);
+		
+		activePassengersEmitters.put(passengerId, emitter);
+		
+		emitter.onCompletion(() -> activePassengersEmitters.remove(passengerId));
+		emitter.onTimeout(() -> {
+			emitter.complete();
+			activePassengersEmitters.remove(passengerId);
+		});
+		emitter.onError((e) -> activePassengersEmitters.remove(passengerId));
+		
+		return emitter;
+	}
+	
+	public void pushRideAcceptedToPassenger(UUID passengerId, AcceptedRide ride) {
+		SseEmitter emitter = activePassengersEmitters.get(passengerId.toString());
+		if (emitter != null) {
+			try {
+				emitter.send(SseEmitter.event()
+						.name("ride_accepted")
+						.data(ride, MediaType.APPLICATION_JSON));
+			}
+			catch (IOException e) {
+				emitter.completeWithError(e);
+				activePassengersEmitters.remove(passengerId.toString());
+			}
+		}
+	}
+	
+	public void pushDriverArrivedToPassenger(UUID passengerId, DriverArrived driverArrived) {
+		SseEmitter emitter = activePassengersEmitters.get(passengerId.toString());
+		if (emitter != null) {
+			try {
+				emitter.send(SseEmitter.event()
+						.name("driver_arrived")
+						.data(driverArrived, MediaType.APPLICATION_JSON));
+			}
+			catch (IOException e) {
+				emitter.completeWithError(e);
+				activePassengersEmitters.remove(passengerId.toString());
+			}
+		}
+	}
 }

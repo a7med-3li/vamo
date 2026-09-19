@@ -1,4 +1,4 @@
-package com.example.transit_platform_overview
+package com.vamo.driver
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RideDispatchListener {
 	
-	private final DriverConnectionManager driverConnectionManager;
+	private final ConnectionManager connectionManager;
 	
 	@EventListener
 	public void handleRideRequested(RideRequestedEvent event) {
@@ -28,8 +28,8 @@ public class RideDispatchListener {
 				event.ride().getDuration(),
 				event.ride().getStatus()
 		);
-		for (String targetDriverId : driverConnectionManager.activeEmitters.keySet()){
-			driverConnectionManager
+		for (String targetDriverId : connectionManager.activeEmitters.keySet()){
+			connectionManager
 					.pushRideRequestToDriver(targetDriverId, dispatchedRide);
 		}
 	}

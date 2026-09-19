@@ -1,4 +1,4 @@
-package com.vamo.passenger
+package com.vamo.admin
 
 import io.flutter.embedding.android.FlutterActivity
 

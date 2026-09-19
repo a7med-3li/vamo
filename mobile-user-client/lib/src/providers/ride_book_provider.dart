@@ -7,6 +7,7 @@ import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../data/models/active_ride.dart';
 import '../data/models/address_result.dart';
+import '../data/models/passenger_ride_stream.dart';
 import '../data/models/ride_option.dart';
 import '../data/repositories/address_repository.dart';
 import '../data/repositories/ride_repository.dart';
@@ -115,11 +116,15 @@ class RideBookProvider extends ChangeNotifier {
   bool _published = false;
 
   // ── Active ride tracking (post-publish) ─────────────────────────────
+  // Live updates arrive over the passenger SSE stream: `ride_accepted`
+  // when a driver accepts the request, `driver_arrived` when they reach
+  // the pickup point.
   PassengerActiveRide? _activeRide;
   bool _isCheckingActiveRide = false;
   String? _activeRideError;
   bool _rideFinished = false;
-  Timer? _activePollTimer;
+  StreamSubscription<PassengerRideStreamEvent>? _rideStreamSub;
+  Timer? _reconnectTimer;
 
   // ── Ride cancellation (post-publish) ────────────────────────────────
   bool _isCancelling = false;
@@ -407,7 +412,7 @@ class RideBookProvider extends ChangeNotifier {
       _activeRide = null;
       _activeRideError = null;
       _rideFinished = false;
-      _startActivePolling();
+      _startSseTracking();
     } on ApiException catch (e) {
       if (!_isPublishing) return;
       _publishError = e.message;
@@ -448,70 +453,81 @@ class RideBookProvider extends ChangeNotifier {
     return false;
   }
 
-  /// Starts polling for the passenger's active ride every few seconds.
-  /// Keeps going until the ride completes or disappears.
-  void _startActivePolling() {
-    _activePollTimer?.cancel();
-    _activePollTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => _refreshActiveRide(),
-    );
-    unawaited(_refreshActiveRide());
+  /// Starts listening on the passenger SSE stream for live ride updates.
+  /// Reconnects on failure while the ride is still being tracked.
+  void _startSseTracking() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _rideStreamSub?.cancel();
+
+    _rideStreamSub = _rideRepo.streamPassengerEvents().listen(
+          _handleRideStreamEvent,
+          onError: (Object _) {
+            _rideStreamSub = null;
+            notifyListeners();
+            _scheduleReconnect();
+          },
+          onDone: () {
+            _rideStreamSub = null;
+            notifyListeners();
+            _scheduleReconnect();
+          },
+          cancelOnError: true,
+        );
   }
 
-  void stopTrackingActiveRide() {
-    _activePollTimer?.cancel();
-    _activePollTimer = null;
-    _activeRide = null;
-    _activeRideError = null;
-    _isCheckingActiveRide = false;
+  void _scheduleReconnect() {
+    if (!_published || _rideCancelled || _rideFinished) return;
+    if (_reconnectTimer != null) return;
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      _reconnectTimer = null;
+      if (!_published || _rideCancelled || _rideFinished) return;
+      if (_rideStreamSub == null) _startSseTracking();
+    });
   }
 
-  /// Stops polling and marks the ride as finished (was active, now gone).
-  void _markRideFinished() {
-    stopTrackingActiveRide();
-    _rideFinished = true;
-  }
-
-  Future<void> _refreshActiveRide() async {
-    if (_isCheckingActiveRide) return;
-    _isCheckingActiveRide = true;
-    notifyListeners();
-
-    try {
-      final ride = await _rideRepo.getActiveRide();
-      if (ride == null) {
-        if (_activeRide != null || _rideFinished) {
-          // Ride was in progress and has now ended → stop tracking.
-          _markRideFinished();
-        }
-        // Otherwise the ride was just published and no driver matched yet.
-      } else {
-        _activeRide = ride;
+  void _handleRideStreamEvent(PassengerRideStreamEvent event) {
+    switch (event.type) {
+      case PassengerRideStreamType.rideAccepted:
+        final accepted = event.accepted;
+        if (accepted == null) return;
+        _activeRide = PassengerActiveRide(
+          id: accepted.rideId,
+          status: accepted.status.isNotEmpty ? accepted.status : 'MATCHED',
+          driverName: accepted.driverName,
+          driverPhone: accepted.driverPhone,
+          vehicleNumber: accepted.vehicleNumber,
+          vehicleType: accepted.vehicleType,
+        );
         _activeRideError = null;
-      }
-    } on ApiException catch (e) {
-      // 404/410 means the ride ended (driver completed it) → stop tracking.
-      if (e.statusCode == 404 || e.statusCode == 410) {
-        if (_activeRide != null || _rideFinished) {
-          _markRideFinished();
-        }
-      } else {
-        _activeRideError = e.message;
-      }
-    } catch (e) {
-      debugPrint('⚠️ [RideBookProvider] active ride error: $e');
-      _activeRideError = 'تعذر تحديث حالة الرحلة.';
-    }
+        break;
 
-    _isCheckingActiveRide = false;
+      case PassengerRideStreamType.driverArrived:
+        final active = _activeRide;
+        if (active == null) return;
+        _activeRide = active.copyWith(driverArrived: true);
+        _activeRideError = null;
+        break;
+    }
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _activePollTimer?.cancel();
+    _reconnectTimer?.cancel();
+    _rideStreamSub?.cancel();
     super.dispose();
+  }
+
+  /// Stops the live stream and clears the tracked active ride.
+  void stopTrackingActiveRide() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _rideStreamSub?.cancel();
+    _rideStreamSub = null;
+    _activeRide = null;
+    _activeRideError = null;
+    _isCheckingActiveRide = false;
   }
 
   /// Returns the caller to the option list to book another ride while
