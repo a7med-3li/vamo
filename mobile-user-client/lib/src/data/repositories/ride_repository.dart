@@ -28,6 +28,8 @@ class RideRepository {
     required double pickupLongitude,
     required double dropoffLatitude,
     required double dropoffLongitude,
+    required String pickupTitle,
+    required String dropoffTitle,
   }) async {
     final data = await _api.getWithBody(
       ApiConstants.rideRequest,
@@ -35,10 +37,12 @@ class RideRepository {
         'pickUp': {
           'latitude': pickupLatitude,
           'longitude': pickupLongitude,
+          'title': pickupTitle,
         },
         'dropOff': {
           'latitude': dropoffLatitude,
           'longitude': dropoffLongitude,
+          'title': dropoffTitle,
         },
       },
     );
@@ -64,6 +68,8 @@ class RideRepository {
     required double distanceInKm,
     required String vehicleType,
     required double price,
+    required String pickupTitle,
+    required String dropoffTitle,
   }) async {
     await _api.post(
       ApiConstants.rideRequestPublish,
@@ -71,10 +77,12 @@ class RideRepository {
         'pickUp': {
           'latitude': pickupLatitude,
           'longitude': pickupLongitude,
+          'title': pickupTitle,
         },
         'dropOff': {
           'latitude': dropoffLatitude,
           'longitude': dropoffLongitude,
+          'title': dropoffTitle,
         },
         'duration': durationSeconds,
         'distance': distanceInKm.round(),
@@ -84,14 +92,19 @@ class RideRepository {
     );
   }
 
-  /// Fetches the passenger's current active ride (MATCHED / STARTED), if any.
+  /// Fetches the passenger's current active ride (STARTED), if any.
   ///
-  /// The backend answers 404/410 when there is no active ride.
+  /// Hits `GET /api/v1/passengers/ride/active`. The endpoint serves only rides
+  /// in STARTED status and its payload lacks an explicit status, so it is
+  /// stored as STARTED. The backend answers 404 when there is no active ride.
   Future<PassengerActiveRide?> getActiveRide() async {
     final data = await _api.get(ApiConstants.rideActive);
     if (data is Map<String, dynamic>) {
       final rideJson = (data['ride'] as Map<String, dynamic>?) ?? data;
-      return PassengerActiveRide.fromJson(rideJson);
+      return PassengerActiveRide.fromJson({
+        ...rideJson,
+        'status': 'STARTED',
+      });
     }
     return null;
   }

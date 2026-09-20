@@ -46,8 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>يتم استخدام موقعك الحالي كنقطة انطلاق لرحلة الحجز.</string>
+	<string>يتم استخدام موقعك الحالي للإبلاغ عن وصولك للرحلة عند بدء الرحلة.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>يتم استخدام موقعك الحالي كنقطة انطلاق لرحلة الحجز.</string>
+	<string>يتم استخدام موقعك الحالي للإبلاغ عن وصولك للرحلة عند بدء الرحلة.</string>
 </dict>
 </plist>

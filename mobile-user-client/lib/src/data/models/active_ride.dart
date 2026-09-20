@@ -11,6 +11,8 @@ class PassengerActiveRide {
     this.vehicleNumber = '',
     this.vehicleType = '',
     this.driverArrived = false,
+    this.pickUpTitle = '',
+    this.dropOffTitle = '',
   });
 
   final String id;
@@ -22,6 +24,10 @@ class PassengerActiveRide {
 
   /// Whether the matched driver has reached the pickup point.
   final bool driverArrived;
+
+  /// Human-friendly titles for the ride legs, when the backend sent them.
+  final String pickUpTitle;
+  final String dropOffTitle;
 
   bool get isMatched => status.toUpperCase() == 'MATCHED';
   bool get isStarted => status.toUpperCase() == 'STARTED';
@@ -45,6 +51,8 @@ class PassengerActiveRide {
     String? vehicleNumber,
     String? vehicleType,
     bool? driverArrived,
+    String? pickUpTitle,
+    String? dropOffTitle,
   }) {
     return PassengerActiveRide(
       id: id,
@@ -54,10 +62,20 @@ class PassengerActiveRide {
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       vehicleType: vehicleType ?? this.vehicleType,
       driverArrived: driverArrived ?? this.driverArrived,
+      pickUpTitle: pickUpTitle ?? this.pickUpTitle,
+      dropOffTitle: dropOffTitle ?? this.dropOffTitle,
     );
   }
 
   factory PassengerActiveRide.fromJson(Map<String, dynamic> json) {
+    String titleAt(Map<String, dynamic>? location) =>
+        location == null ? '' : (location['title'] as String? ?? '');
+
+    final pickUpRaw = (json['pickUp'] as Map<String, dynamic>?) ??
+        (json['pickUpLocation'] as Map<String, dynamic>?);
+    final dropOffRaw = (json['dropOff'] as Map<String, dynamic>?) ??
+        (json['dropOffLocation'] as Map<String, dynamic>?);
+
     return PassengerActiveRide(
       id: json['rideId']?.toString() ?? json['id']?.toString() ?? '',
       status: json['status']?.toString().toUpperCase() ?? 'REQUESTED',
@@ -65,6 +83,8 @@ class PassengerActiveRide {
       driverPhone: json['driverPhone'] as String? ?? '',
       vehicleNumber: json['vehicleNumber'] as String? ?? '',
       vehicleType: json['vehicleType']?.toString() ?? '',
+      pickUpTitle: titleAt(pickUpRaw),
+      dropOffTitle: titleAt(dropOffRaw),
     );
   }
 }

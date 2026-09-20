@@ -47,11 +47,8 @@ class ApiConstants {
   static const String rideRequestStream = '/api/v1/dispatch/drivers/stream';
 
   // ── Active ride ────────────────────────────────────────────────────────
-  /// The driver's current active ride (status MATCHED / STARTED), if any.
-  static const String driverActiveRide = '/api/v3/ride/driver/active';
-
-  /// Driver marks the current ride as started (arrived at the passenger).
-  static String startRide(String rideId) => '/api/v3/ride/$rideId/start';
+  /// The driver's current active ride (STARTED), if any.
+  static const String driverActiveRide = '/api/v1/drivers/ride/active';
 
   /// Driver completes the current ride.
   static String completeRide(String rideId) => '/api/v3/ride/$rideId/complete';

@@ -3,16 +3,21 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../core/network/api_exception.dart';
+import '../core/services/location_service.dart';
 import '../data/models/driver_profile.dart';
 import '../data/models/ride_request.dart';
 import '../data/repositories/driver_repository.dart';
 
 /// Manages driver profile state, shift toggle, and live ride requests.
 class DriverProvider extends ChangeNotifier {
-  DriverProvider({required DriverRepository driverRepository})
-      : _driverRepo = driverRepository;
+  DriverProvider({
+    required DriverRepository driverRepository,
+    LocationService? locationService,
+  })  : _driverRepo = driverRepository,
+        _locationService = locationService ?? LocationService();
 
   final DriverRepository _driverRepo;
+  final LocationService _locationService;
 
   // ── Profile state ──────────────────────────────────────────────────
 
@@ -54,7 +59,7 @@ class DriverProvider extends ChangeNotifier {
   RideRequest? _activeRide;
   bool _isLoadingActiveRide = false;
   String? _activeRideError;
-  bool _isStartingTrip = false;
+  bool _isReportingArrival = false;
   bool _isCompletingTrip = false;
 
   List<RideRequest> get rideRequests => _rideRequests;
@@ -67,7 +72,7 @@ class DriverProvider extends ChangeNotifier {
   bool get hasActiveRide => _activeRide != null;
   bool get isLoadingActiveRide => _isLoadingActiveRide;
   String? get activeRideError => _activeRideError;
-  bool get isStartingTrip => _isStartingTrip;
+  bool get isReportingArrival => _isReportingArrival;
   bool get isCompletingTrip => _isCompletingTrip;
 
   bool isAccepting(String rideId) => _acceptingId == rideId;
@@ -211,39 +216,42 @@ class DriverProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Starts the current ride, notifying the passenger that the driver arrived.
-  /// Returns `true` when the backend accepted the action.
+  /// Reports the driver's arrival at the pickup point, notifying the
+  /// passenger that the driver is waiting. Returns `true` when reported.
   ///
-  /// The MVP wires the "start trip" action to the driver-arrival report
-  /// (`POST /api/v1/drivers/ride/{id}/arrived`): the backend broadcasts the
-  /// live `driver_arrived` event to the passenger, and the ride is marked
-  /// started locally. The dedicated `/start` endpoint is planned for later.
-  Future<bool> startCurrentTrip() async {
+  /// The arrival report carries the driver's current location; when the device
+  /// position cannot be resolved, the ride's pickup location is sent instead.
+  Future<bool> reportArrived() async {
     final ride = _activeRide;
-    if (ride == null || _isStartingTrip) return false;
+    if (ride == null || _isReportingArrival || ride.isStarted) return false;
 
-    _isStartingTrip = true;
+    _isReportingArrival = true;
     _activeRideError = null;
     notifyListeners();
 
     try {
+      final location = await _locationService.currentPosition();
       await _driverRepo.reportArrived(
         ride.id,
-        pickupLatitude: ride.pickUpLat,
-        pickupLongitude: ride.pickUpLng,
+        latitude: location?.latitude ?? ride.pickUpLat,
+        longitude: location?.longitude ?? ride.pickUpLng,
       );
+      // The backend marks the ride as STARTED on arrival
+      // (DriverArrivedListener), which is exactly how the passenger is told
+      // the ride started. Reflect that here so the driver can move on to
+      // completing the ride.
       _activeRide = ride.copyWith(status: 'STARTED');
       return true;
     } on ApiException catch (e) {
       _activeRideError = _isPendingFeature(e)
-          ? 'بدء الرحلة غير متاح حالياً.'
+          ? 'الإبلاغ عن الوصول غير متاح حالياً.'
           : e.message;
       return false;
     } catch (_) {
-      _activeRideError = 'تعذر بدء الرحلة.';
+      _activeRideError = 'تعذر الإبلاغ عن الوصول.';
       return false;
     } finally {
-      _isStartingTrip = false;
+      _isReportingArrival = false;
       notifyListeners();
     }
   }

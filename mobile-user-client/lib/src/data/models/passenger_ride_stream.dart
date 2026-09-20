@@ -28,6 +28,8 @@ class AcceptedRideInfo {
     this.vehicleType = '',
     this.estimatedFare = 0,
     this.status = '',
+    this.pickUpTitle = '',
+    this.dropOffTitle = '',
   });
 
   final String rideId;
@@ -37,6 +39,8 @@ class AcceptedRideInfo {
   final String vehicleType;
   final double estimatedFare;
   final String status;
+  final String pickUpTitle;
+  final String dropOffTitle;
 
   /// Driver display name, falling back to a neutral placeholder when the
   /// backend does not send it.
@@ -46,6 +50,11 @@ class AcceptedRideInfo {
   }
 
   factory AcceptedRideInfo.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic>? locationAt(String? key) =>
+        json[key] is Map<String, dynamic> ? json[key] as Map<String, dynamic>? : null;
+    String titleAt(Map<String, dynamic>? location) =>
+        location == null ? '' : (location['title'] as String? ?? '');
+
     return AcceptedRideInfo(
       rideId: json['rideId']?.toString() ?? json['id']?.toString() ?? '',
       driverName: json['driverName'] as String? ?? '',
@@ -55,6 +64,8 @@ class AcceptedRideInfo {
       estimatedFare:
           (json['estimatedFare'] as num?)?.toDouble() ?? (json['price'] as num?)?.toDouble() ?? 0,
       status: json['status']?.toString() ?? '',
+      pickUpTitle: titleAt(locationAt('pickUpLocation') ?? locationAt('pickUp')),
+      dropOffTitle: titleAt(locationAt('dropOffLocation') ?? locationAt('dropOff')),
     );
   }
 }

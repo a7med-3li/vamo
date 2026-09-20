@@ -13,6 +13,8 @@ class RideRequest {
     required this.pickUpLng,
     required this.dropOffLat,
     required this.dropOffLng,
+    this.pickUpTitle = '',
+    this.dropOffTitle = '',
     this.distanceInKm = 0,
     this.durationSeconds = 0,
     this.vehicleType = '',
@@ -28,6 +30,8 @@ class RideRequest {
   final double pickUpLng;
   final double dropOffLat;
   final double dropOffLng;
+  final String pickUpTitle;
+  final String dropOffTitle;
   final double distanceInKm;
   final int durationSeconds;
   final String vehicleType;
@@ -40,13 +44,15 @@ class RideRequest {
     return name.isEmpty ? 'عميل Vamo' : name;
   }
 
-  /// Human-friendly label for the pickup location (from coordinates).
-  /// Falls back to a placeholder when the backend did not send coordinates.
-  String get pickupLabel => RideRequest._lacka(pickUpLat, pickUpLng);
+  /// Human-friendly label for the pickup location: the location title when the
+  /// backend sent one, otherwise a placeholder from the coordinates.
+  String get pickupLabel =>
+      pickUpTitle.isNotEmpty ? pickUpTitle : RideRequest._lacka(pickUpLat, pickUpLng);
 
-  /// Human-friendly label for the drop-off location (from coordinates).
-  /// Falls back to a placeholder when the backend did not send coordinates.
-  String get destinationLabel => RideRequest._lacka(dropOffLat, dropOffLng);
+  /// Human-friendly label for the drop-off location: the location title when
+  /// the backend sent one, otherwise a placeholder from the coordinates.
+  String get destinationLabel =>
+      dropOffTitle.isNotEmpty ? dropOffTitle : RideRequest._lacka(dropOffLat, dropOffLng);
 
   int get durationMinutes => (durationSeconds / 60).round();
 
@@ -81,6 +87,8 @@ class RideRequest {
         pickUpLng: pickUpLng,
         dropOffLat: dropOffLat,
         dropOffLng: dropOffLng,
+        pickUpTitle: pickUpTitle,
+        dropOffTitle: dropOffTitle,
         distanceInKm: distanceInKm,
         durationSeconds: durationSeconds,
         vehicleType: vehicleType,
@@ -107,7 +115,7 @@ class RideRequest {
       id: json['rideId']?.toString() ?? json['id']?.toString() ?? '',
       passengerName: json['passengerName'] as String? ?? '',
       passengerPhone: json['passengerPhone'] as String? ?? '',
-      price: numVal(json['estimatedFare'] ?? json['price']),
+      price: numVal(json['estimatedFare'] ?? json['price'] ?? json['fare']),
       requestedAt:
           DateTime.tryParse(json['requestedAt']?.toString() ?? '') ??
               DateTime.now(),
@@ -115,6 +123,8 @@ class RideRequest {
       pickUpLng: coord(pickUp, 'longitude'),
       dropOffLat: coord(dropOff, 'latitude'),
       dropOffLng: coord(dropOff, 'longitude'),
+      pickUpTitle: pickUp?['title'] as String? ?? '',
+      dropOffTitle: dropOff?['title'] as String? ?? '',
       distanceInKm: numVal(json['distanceInKm']),
       durationSeconds: (json['duration'] as num?)?.toInt() ?? 0,
       vehicleType: json['vehicleType'] as String? ?? '',

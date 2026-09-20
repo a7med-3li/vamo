@@ -628,42 +628,76 @@ class BookRideScreenState extends State<BookRideScreen> {
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: context.cardBorderColor),
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: VamoTheme.accent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.airport_shuttle_rounded,
-                        color: VamoTheme.accent,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            provider.activeRide!.driverNameLabel,
-                            style:
-                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: VamoTheme.accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.airport_shuttle_rounded,
+                            color: VamoTheme.accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                provider.activeRide!.driverNameLabel,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w800,
                                     ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                provider.activeRide!.vehicleNumberLabel,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: context.subtitleColor),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            provider.activeRide!.vehicleNumberLabel,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: context.subtitleColor),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                    if (provider.activeRide!.pickUpTitle.isNotEmpty ||
+                        provider.activeRide!.dropOffTitle.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                        ),
+                      ),
+                      _tripLine(
+                        context,
+                        Icons.circle_outlined,
+                        provider.activeRide!.pickUpTitle.isNotEmpty
+                            ? provider.activeRide!.pickUpTitle
+                            : 'موقع غير معروف',
+                        color: VamoTheme.accent,
+                      ),
+                      const SizedBox(height: 10),
+                      _tripLine(
+                        context,
+                        Icons.place_outlined,
+                        provider.activeRide!.dropOffTitle.isNotEmpty
+                            ? provider.activeRide!.dropOffTitle
+                            : 'موقع غير معروف',
+                        color: VamoTheme.alert,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -903,6 +937,25 @@ String _requestLabel(RideBookProvider provider, bool canRequest) {
     if (confirmed == true && context.mounted) {
       await context.read<RideBookProvider>().cancelActiveRide();
     }
+  }
+
+  Widget _tripLine(BuildContext context, IconData icon, String text,
+      {required Color color}) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: context.titleColor,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

@@ -47,37 +47,39 @@ class DriverRepository {
     await _api.post(ApiConstants.acceptRideRequest(rideRequestId));
   }
 
-  /// Fetches the driver's current active ride (MATCHED / STARTED), if any.
+  /// Fetches the driver's current active ride (STARTED), if any.
   ///
-  /// The backend answers 404 when the driver has no active ride.
+  /// Hits `GET /api/v1/drivers/ride/active`. The endpoint serves only rides in
+  /// STARTED status and its payload lacks an explicit status, so it is stored
+  /// as STARTED. The backend answers 404 when the driver has no active ride.
   Future<RideRequest?> getActiveRide() async {
     final data = await _api.get(ApiConstants.driverActiveRide);
     if (data is Map<String, dynamic>) {
       final rideJson = (data['ride'] as Map<String, dynamic>?) ?? data;
-      return RideRequest.fromJson(rideJson);
+      return RideRequest.fromJson({
+        ...rideJson,
+        'status': 'STARTED',
+      });
     }
     return null;
-  }
-
-  /// Marks the current ride as started (driver arrived and began the trip).
-  Future<void> startRide(String rideId) async {
-    await _api.post(ApiConstants.startRide(rideId));
   }
 
   /// Reports the driver's arrival at the pickup point.
   ///
   /// Hits `POST /api/v1/drivers/ride/{id}/arrived`, which makes the backend
-  /// broadcast the `driver_arrived` live event to the passenger.
+  /// broadcast the `driver_arrived` live event to the passenger. The reported
+  /// coordinates are the driver's current position (falling back to the ride's
+  /// pickup location when the live position could not be resolved).
   Future<void> reportArrived(
     String rideId, {
-    required double pickupLatitude,
-    required double pickupLongitude,
+    required double latitude,
+    required double longitude,
   }) async {
     await _api.post(
       ApiConstants.driverArrived(rideId),
       body: {
-        'latitude': pickupLatitude,
-        'longitude': pickupLongitude,
+        'latitude': latitude,
+        'longitude': longitude,
       },
     );
   }

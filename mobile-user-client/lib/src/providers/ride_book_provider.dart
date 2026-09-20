@@ -178,6 +178,25 @@ class RideBookProvider extends ChangeNotifier {
     return _deviceLocation;
   }
 
+  /// Display title for the ride pickup: the pinned address title, or a static
+  /// label for the raw device GPS position.
+  String get pickupTitle {
+    final addr = _pickup.selected;
+    final title = addr?.title ?? '';
+    if (title.isNotEmpty) return title;
+    final description = addr?.description ?? '';
+    if (description.isNotEmpty) return description;
+    return 'Your Current Location';
+  }
+
+  /// Display title for the ride drop-off (always a pinned address).
+  String get dropoffTitle {
+    final address = _dropoff.selected;
+    if (address == null) return '';
+    if (address.title.isNotEmpty) return address.title;
+    return address.description;
+  }
+
   /// Fetches the device's current location as the pickup default.
   Future<void> loadCurrentLocation() async {
     _isLocating = true;
@@ -350,8 +369,10 @@ class RideBookProvider extends ChangeNotifier {
       final options = await _rideRepo.requestRide(
         pickupLatitude: pickup.latitude,
         pickupLongitude: pickup.longitude,
+        pickupTitle: pickupTitle,
         dropoffLatitude: dropoff.lat!,
         dropoffLongitude: dropoff.lng!,
+        dropoffTitle: dropoffTitle,
       );
       if (!_isRequestingRide) return; // cleared while the request was in flight
       // Drop empty stubs returned by the backend when a transport mode fails.
@@ -400,8 +421,10 @@ class RideBookProvider extends ChangeNotifier {
       await _rideRepo.publishRideRequest(
         pickupLatitude: pickup.latitude,
         pickupLongitude: pickup.longitude,
+        pickupTitle: pickupTitle,
         dropoffLatitude: dropoff.lat!,
         dropoffLongitude: dropoff.lng!,
+        dropoffTitle: dropoffTitle,
         durationSeconds: option.duration,
         distanceInKm: option.distance / 1000,
         vehicleType: option.vehicleType,
@@ -498,6 +521,8 @@ class RideBookProvider extends ChangeNotifier {
           driverPhone: accepted.driverPhone,
           vehicleNumber: accepted.vehicleNumber,
           vehicleType: accepted.vehicleType,
+          pickUpTitle: accepted.pickUpTitle,
+          dropOffTitle: accepted.dropOffTitle,
         );
         _activeRideError = null;
         break;
@@ -505,7 +530,9 @@ class RideBookProvider extends ChangeNotifier {
       case PassengerRideStreamType.driverArrived:
         final active = _activeRide;
         if (active == null) return;
-        _activeRide = active.copyWith(driverArrived: true);
+        // The backend marks the ride as STARTED when the driver arrives
+        // (DriverArrivedListener), so the passenger is told the ride began.
+        _activeRide = active.copyWith(driverArrived: true, status: 'STARTED');
         _activeRideError = null;
         break;
     }

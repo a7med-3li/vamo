@@ -50,8 +50,8 @@ class ApiConstants {
   static const String rideRequest = '/api/v3/ride/request';
   static const String rideRequestPublish = '/api/v3/ride/request/publish';
 
-  /// The passenger's current active ride (status MATCHED / STARTED), if any.
-  static const String rideActive = '/api/v3/ride/active';
+  /// The passenger's current active ride (STARTED), if any.
+  static const String rideActive = '/api/v1/passengers/ride/active';
 
   /// Server-sent events stream for the passenger's live ride updates
   /// (`ride_accepted` when a driver accepts, `driver_arrived` on arrival).

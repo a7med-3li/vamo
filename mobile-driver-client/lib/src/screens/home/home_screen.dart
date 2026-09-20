@@ -566,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (ride == null) return const SizedBox.shrink();
 
     final started = ride.isStarted;
-    final busy = driver.isStartingTrip || driver.isCompletingTrip;
+    final busy = driver.isReportingArrival || driver.isCompletingTrip;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -622,7 +622,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        started ? 'بدأت الرحلة — السائق في الطريق إلى الوجهة' : 'في الطريق إلى الراكب',
+                        started
+                            ? 'بدأت الرحلة — السائق في الطريق إلى الوجهة'
+                            : 'في الطريق إلى الراكب',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -686,13 +688,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: VamoButton(
-                          label: started ? 'إنهاء الرحلة' : 'بدأت الرحلة',
+                          label: started ? 'إنهاء الرحلة' : 'أنا وصلت',
                           icon: started
                               ? Icons.flag_rounded
-                              : Icons.play_circle_fill_rounded,
+                              : Icons.my_location_rounded,
                           onPressed: started
                               ? () => _handleCompleteTrip(context)
-                              : () => _handleStartTrip(context),
+                              : () => _handleArrived(context),
                         ),
                       ),
                     ],
@@ -703,16 +705,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _handleStartTrip(BuildContext context) async {
+  Future<void> _handleArrived(BuildContext context) async {
     final driver = context.read<DriverProvider>();
-    final started = await driver.startCurrentTrip();
+    final arrived = await driver.reportArrived();
     if (!context.mounted) return;
 
-    if (started) {
+    if (arrived) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(_statusSnackBar('بدأت الرحلة.'));
+          .showSnackBar(_statusSnackBar('وصلت — تم إبلاغ الراكب وبدأت الرحلة.'));
     } else {
-      final reason = driver.activeRideError ?? 'تعذر بدء الرحلة.';
+      final reason = driver.activeRideError ?? 'تعذر الإبلاغ عن الوصول.';
       ScaffoldMessenger.of(context).showSnackBar(_statusSnackBar(reason));
     }
   }
