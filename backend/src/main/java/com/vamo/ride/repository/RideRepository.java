@@ -22,6 +22,14 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
     
     Optional<Ride> findByIdAndPassengerId(UUID rideId, UUID passengerId);
     
+    @Query("SELECT r FROM Ride r WHERE r.driverId = :driverId " +
+            "AND r.status = 'MATCHED' OR r.status = 'STARTED'")
+    Optional<Ride> findByDriverIdAndStatus(UUID driverId);
+    
+    @Query("SELECT r FROM Ride r WHERE r.passengerId = :passengerId " +
+            "AND r.status = 'MATCHED' OR r.status = 'STARTED'")
+    Optional<Ride> findByPassengerIdAndStatus(UUID passengerId);
+    
     List<Ride> findByPassengerIdOrderByRequestedAtDesc(UUID passengerId);
 
     List<Ride> findByDriverIdOrderByDepartureTimeAsc(UUID driverId);

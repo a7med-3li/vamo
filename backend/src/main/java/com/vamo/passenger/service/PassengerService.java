@@ -1,8 +1,13 @@
 package com.vamo.passenger.service;
 
 import java.util.UUID;
+import com.vamo.common.enums.RideStatus;
+import com.vamo.driver.service.DriverService;
+import com.vamo.passenger.dto.PassengerActiveRideDTO;
 import com.vamo.passenger.entity.PassengerProfile;
 import com.vamo.passenger.repository.PassengerProfileRepository;
+import com.vamo.ride.entity.Ride;
+import com.vamo.ride.service.RideService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,5 +22,4 @@ public class PassengerService {
 		return passengerProfileRepository.findByUserId(id)
 				.orElseThrow(() -> new RuntimeException("Passenger not found"));
 	}
-	
 }

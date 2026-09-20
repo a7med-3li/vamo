@@ -23,12 +23,14 @@ public class RideController {
     private final RoutingService routingService;
     private final RideService rideService;
 
+    
+    // todo: edit the return type to include ride details
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @PostMapping("/{id}/complete")
     public ResponseEntity<ApiResponse> completeRide(
-            @AuthenticationPrincipal String userId,
+            @CurrentDriverId UUID driverId,
             @PathVariable UUID id) {
-        rideService.completeRide(id, UUID.fromString(userId));
+        rideService.completeRide(id, driverId);
         return ResponseEntity.ok(new ApiResponse(true, "Ride completed"));
     }
 

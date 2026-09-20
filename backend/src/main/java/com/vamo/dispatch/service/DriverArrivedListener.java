@@ -1,5 +1,7 @@
 package com.vamo.dispatch.service;
 
+import java.time.Instant;
+import com.vamo.common.enums.RideStatus;
 import com.vamo.common.events.DriverArrivedEvent;
 import com.vamo.dispatch.dto.DriverArrived;
 import com.vamo.ride.entity.Ride;
@@ -18,6 +20,11 @@ public class DriverArrivedListener {
 	@EventListener
 	public void onDriverArrive(DriverArrivedEvent driverArrivedEvent) {
 		Ride ride = rideService.getRideById(driverArrivedEvent.rideId());
+		
+		ride.setStatus(RideStatus.STARTED);
+		ride.setStartedAt(Instant.now());
+		rideService.save(ride);
+		
 		DriverArrived driverArrived = new DriverArrived(
 				driverArrivedEvent.driverPhone(),
 				driverArrivedEvent.vehicleNumber(),

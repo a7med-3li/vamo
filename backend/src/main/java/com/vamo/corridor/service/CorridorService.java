@@ -52,7 +52,7 @@ public class CorridorService {
 		for (CorridorStopRequest stopDto : request.stops()) {
 			VBS stop = new VBS();
 			stop.setName(stopDto.name());
-			stop.setVBS_location(new Location(stopDto.latitude(), stopDto.longitude()));
+			//stop.setVBS_location(new Location(stopDto.latitude(), stopDto.longitude()));
 			
 			corridor.addStop(stop);
 		}

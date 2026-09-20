@@ -2,12 +2,15 @@ package com.vamo.driver.controller;
 
 import com.vamo.common.annotation.CurrentDriverId;
 import com.vamo.common.entity.Location;
+import com.vamo.common.enums.RideStatus;
 import com.vamo.driver.dto.ActivateCorridorRequest;
+import com.vamo.driver.dto.ActiveRideDTO;
 import com.vamo.driver.dto.DriverProfileResponse;
 import com.vamo.driver.dto.TransactionResponse;
 import com.vamo.driver.dto.WalletResponse;
 import com.vamo.driver.service.DriverService;
 import com.vamo.driver.service.DriverWalletService;
+import com.vamo.ride.service.RideService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,7 @@ public class DriverController {
 
     private final DriverService driverService;
     private final DriverWalletService walletService;
+    private final RideService rideService;
 
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @GetMapping("/profile")
@@ -33,6 +37,10 @@ public class DriverController {
         return ResponseEntity.ok(driverService.getProfile(UUID.fromString(userId)));
     }
     
+    @GetMapping("/ride/active")
+    public ResponseEntity<ActiveRideDTO> getActiveRide(@CurrentDriverId UUID userId) {
+        return ResponseEntity.ok(rideService.getRideByDriverIdAndStatus(userId));
+    }
     @PreAuthorize("hasAnyRole('DRIVER', 'BOTH')")
     @PostMapping("/ride/{id}/arrived")
     public ResponseEntity<?> arrivedAtRide(

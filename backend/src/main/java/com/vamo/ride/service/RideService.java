@@ -8,8 +8,12 @@ import com.vamo.common.exception.BadRequestException;
 import com.vamo.common.exception.NotFoundException;
 import com.vamo.common.exception.RideAlreadyTakenException;
 import com.vamo.dispatch.service.ConnectionManager;
+import com.vamo.driver.dto.ActiveRideDTO;
 import com.vamo.driver.entity.DriverProfile;
 import com.vamo.driver.service.DriverService;
+import com.vamo.passenger.dto.PassengerActiveRideDTO;
+import com.vamo.passenger.entity.PassengerProfile;
+import com.vamo.passenger.service.PassengerService;
 import com.vamo.ride.dto.PublishedRideDTO;
 import com.vamo.ride.dto.RideHistoryItem;
 import com.vamo.ride.dto.RideRequestDto;
@@ -32,6 +36,7 @@ public class RideService {
 
     private final RideRepository rideRepository;
     private final DriverService driverService;
+    private final PassengerService passengerService;
     private final DriverWalletService driverWalletService;
     private final ApplicationEventPublisher eventPublisher;
     private final ConnectionManager connectionManager;
@@ -127,9 +132,6 @@ public class RideService {
         if (!driverId.equals(ride.getDriverId())) {
             throw new BadRequestException("This ride is not assigned to you");
         }
-        if (ride.getStatus() != RideStatus.IN_PROGRESS) {
-            throw new BadRequestException("Ride is not in progress");
-        }
 
         ride.setStatus(RideStatus.COMPLETED);
         ride.setCompletedAt(Instant.now());
@@ -192,5 +194,46 @@ public class RideService {
     public Ride getRideById(UUID rideId) {
         return rideRepository.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
+    }
+    
+    public ActiveRideDTO getRideByDriverIdAndStatus(UUID driverId) {
+        Ride ride = rideRepository.findByDriverIdAndStatus(driverId)
+                .orElseThrow(() -> new NotFoundException("Ride not found"));
+        
+        PassengerProfile passengerProfile = passengerService.findById(ride.getPassengerId());
+        return new ActiveRideDTO(
+                ride.getId(),
+                passengerProfile.getUser().getFirstName(),
+                passengerProfile.getUser().getPhoneNumber(),
+                ride.getPickUp(),
+                ride.getDropOff(),
+                ride.getEstimatedFare(),
+                ride.getDistanceInKm(),
+                ride.getDuration()
+        );
+    }
+    
+    public PassengerActiveRideDTO getRideByPassengerIdAndStatus(UUID passengerId) {
+        Ride ride = rideRepository.findByPassengerIdAndStatus(passengerId)
+                .orElseThrow(() -> new NotFoundException("Ride not found"));
+        
+        DriverProfile driver = driverService.getDriverProfile(ride.getDriverId());
+        
+        return new PassengerActiveRideDTO(
+                ride.getId(),
+                driver.getUser().getFirstName(),
+                driver.getUser().getPhoneNumber(),
+                driver.getLicenseNumber(),
+                ride.getPickUp(),
+                ride.getDropOff(),
+                ride.getEstimatedFare(),
+                ride.getDistanceInKm(),
+                ride.getDuration()
+        );
+    }
+    
+    @Transactional
+    public void save(Ride ride) {
+        rideRepository.save(ride);
     }
 }
