@@ -30,7 +30,7 @@ public class RideController {
     public ResponseEntity<ApiResponse> completeRide(
             @CurrentDriverId UUID driverId,
             @PathVariable UUID id) {
-        rideService.completeRide(id, driverId);
+        rideService.completeRide(driverId, id);
         return ResponseEntity.ok(new ApiResponse(true, "Ride completed"));
     }
 

@@ -2,6 +2,7 @@ package com.vamo.ride.service;
 
 import com.vamo.common.enums.RideStatus;
 import com.vamo.common.events.RideAcceptedEvent;
+import com.vamo.common.events.RideCompletedEvent;
 import com.vamo.common.events.RideRequestedEvent;
 import com.vamo.common.events.RideTakenEvent;
 import com.vamo.common.exception.BadRequestException;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.sql.Driver;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -79,11 +81,11 @@ public class RideService {
         publishRideAcceptedEvent(rideId);
     }
     
-    public void publishRideTakenEvent(UUID rideId){
+    private void publishRideTakenEvent(UUID rideId){
         eventPublisher.publishEvent(new RideTakenEvent(rideId));
     }
     
-    public void publishRideAcceptedEvent(UUID rideId){
+    private void publishRideAcceptedEvent(UUID rideId){
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
         DriverProfile driverProfile = driverService.getDriverProfile(ride.getDriverId());
@@ -128,13 +130,31 @@ public class RideService {
     public void completeRide(UUID rideId, UUID driverId) {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new NotFoundException("Ride not found"));
-
+        
+        DriverProfile driverProfile = driverService.getDriverProfile(driverId);
+        
         if (!driverId.equals(ride.getDriverId())) {
             throw new BadRequestException("This ride is not assigned to you");
         }
 
         ride.setStatus(RideStatus.COMPLETED);
         ride.setCompletedAt(Instant.now());
+        
+        RideCompletedEvent event = new RideCompletedEvent(
+                ride.getId(),
+                ride.getPassengerId(),
+                driverProfile.getUser().getFirstName(),
+                driverProfile.getUser().getPhoneNumber(),
+                driverProfile.getLicenseNumber(),
+                ride.getVehicleType(),
+                ride.getPickUp(),
+                ride.getDropOff(),
+                ride.getEstimatedFare(),
+                ride.getDistanceInKm(),
+                ride.getDuration()
+        );
+        
+        eventPublisher.publishEvent(event);
         rideRepository.save(ride);
     }
 

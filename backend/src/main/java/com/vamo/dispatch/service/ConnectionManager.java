@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import com.vamo.common.events.DriverArrivedEvent;
 import com.vamo.dispatch.dto.AcceptedRide;
+import com.vamo.dispatch.dto.CompletedRide;
 import com.vamo.dispatch.dto.DispatchedRide;
 import com.vamo.dispatch.dto.DriverArrived;
 import com.vamo.dispatch.dto.NotAvailableRide;
@@ -83,6 +84,21 @@ public class ConnectionManager {
 		}
 	}
 	
+	public void pushRideCompletedToDriver(UUID driverId, CompletedRide completedRide) {
+		SseEmitter emitter = activeEmitters.get(driverId.toString());
+		if (emitter != null) {
+			try {
+				emitter.send(SseEmitter.event()
+						.name("ride_completed")
+						.data(completedRide, MediaType.APPLICATION_JSON));
+			}
+			catch (IOException e) {
+				emitter.completeWithError(e);
+				activeEmitters.remove(driverId.toString());
+			}
+		}
+	}
+	
 	public SseEmitter createPassengerConnection(String passengerId) {
 		SseEmitter emitter = new SseEmitter(900000L);
 		
@@ -120,6 +136,21 @@ public class ConnectionManager {
 				emitter.send(SseEmitter.event()
 						.name("driver_arrived")
 						.data(driverArrived, MediaType.APPLICATION_JSON));
+			}
+			catch (IOException e) {
+				emitter.completeWithError(e);
+				activePassengersEmitters.remove(passengerId.toString());
+			}
+		}
+	}
+	
+	public void pushRideCompletedToPassenger(UUID passengerId, CompletedRide completedRide) {
+		SseEmitter emitter = activePassengersEmitters.get(passengerId.toString());
+		if (emitter != null) {
+			try {
+				emitter.send(SseEmitter.event()
+						.name("ride_completed")
+						.data(completedRide, MediaType.APPLICATION_JSON));
 			}
 			catch (IOException e) {
 				emitter.completeWithError(e);
